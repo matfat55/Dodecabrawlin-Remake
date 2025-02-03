@@ -715,3 +715,9 @@ p {
   display: block;
   z-index: 999;
 }
+
+.powerUp {
+  position: absolute;
+  background-size: 4.8vw 4.8vw;
+  image-rendering: pixelated;
+}

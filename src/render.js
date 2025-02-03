@@ -93,8 +93,29 @@ renderVars = {
     document.getElementById("campaignScreen").style.backgroundPosition = (x / 4) + "px " + (y / 4) + "px"
     //console.log(Date.now() - renderVars.lastRender)
     renderVars.lastRender = Date.now();
-  }
   
+  // Render power-ups
+  let powerUpContainer = document.getElementById("game");
+  let existingPowerUps = document.querySelectorAll('.powerUp');
+  existingPowerUps.forEach(powerUp => powerUp.remove());
+  for (let i = 0; i < activePowerUps.length; i++) {
+    const powerUp = activePowerUps[i];
+    let powerUpElement = document.createElement('div');
+    powerUpElement.classList.add('powerUp');
+    powerUpElement.style.left = (powerUp.x / 20) + 'vw';
+    powerUpElement.style.top = (powerUp.y / 20) + 'vw';
+    powerUpElement.style.width = '4.8vw';
+    powerUpElement.style.height = '4.8vw';
+    powerUpElement.style.backgroundSize = '4.8vw 4.8vw';
+    if (powerUp.type === 0) {
+      powerUpElement.style.backgroundImage = "url('img/DamageBoost.png')";
+    } else if (powerUp.type === 1) {
+      powerUpElement.style.backgroundImage = "url('img/JumpBoost.png')";
+    }
+    powerUpContainer.appendChild(powerUpElement);
+    powerUp.element = powerUpElement;
+  }
+}
   render(renderVars.posX, renderVars.posY)
   
   //Automatically renders 10 times per second (there's probably a better way to do this)

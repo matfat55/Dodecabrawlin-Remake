@@ -1,4 +1,22 @@
-let windowheightRatio = 2000 / window.innerWidth * window.innerHeight 
+let windowheightRatio = 2000 / window.innerWidth * window.innerHeight
+
+//Power-up types
+const powerUpTypes = {
+  damageBoost: 0,
+  jumpBoost: 1
+};
+
+//Power-up object structure
+let activePowerUps = [];
+function createPowerUp(type, x, y) {
+  return {
+    type: type,
+    x: x,
+    y: y,
+    duration: 500, // Duration in frames
+    element: null, // DOM element for rendering
+  };
+}
 
 //Constants
 const movementSpeed = 3.3
@@ -334,6 +352,7 @@ document.getElementById("menuButton3Back").style.left = "50%"
 document.getElementById("menuButton3Back").style.top = "78%"
 
 function update() {
+  spawnPowerUp();
   windowheightRatio = 2000 / window.innerWidth * window.innerHeight 
   timeSinceStart += 15
 
@@ -589,6 +608,44 @@ function update() {
   }
 }
 
+  // Power-up collection and effects
+  for (let i = 0; i < activePowerUps.length; i++) {
+    const powerUp = activePowerUps[i];
+    
+    // Check for collision with player 1
+    if (player1.xPos > (powerUp.x - 48) && player1.xPos < (powerUp.x + 48) && player1.yPos > (powerUp.y - 48) && player1.yPos < (powerUp.y + 48)) {
+      applyPowerUpEffect(player1, powerUp.type);
+      activePowerUps.splice(i, 1);
+      i--;
+      continue;
+    }
+    
+    // Check for collision with player 2
+    if (currentScreen == 3 && player2.xPos > (powerUp.x - 48) && player2.xPos < (powerUp.x + 48) && player2.yPos > (powerUp.y - 48) && player2.yPos < (powerUp.y + 48)) {
+      applyPowerUpEffect(player2, powerUp.type);
+      activePowerUps.splice(i, 1);
+      i--;
+      continue;
+    }
+
+    // Decrease power-up duration
+    powerUp.duration--;
+    if (powerUp.duration <= 0) {
+      activePowerUps.splice(i, 1);
+      i--;
+    }
+  }
+
+  function applyPowerUpEffect(player, type) {
+    if (type === powerUpTypes.damageBoost) {
+      player.statMultipliers[2] *= 1.5; // Increase damage by 50%
+      setTimeout(() => {player.statMultipliers[2] /= 1.5}, 5000) // Revert after 5 seconds
+    } else if (type === powerUpTypes.jumpBoost) {
+      player.statMultipliers[1] *= 1.3; // Increase jump height by 30%
+      setTimeout(() => {player.statMultipliers[1] /= 1.3}, 5000) // Revert after 5 seconds
+    }
+  }
+
 setInterval(update, 15)
 
 //Pressing the jump keys
@@ -693,6 +750,16 @@ window.addEventListener("keydown", (event) => {
       if (document.getElementById("player2").style.transform == "scaleX(-1)") {player2.xVelocity = -35}
       else {player2.xVelocity = 35}
       player2.dashCooldown = 50
+    }
+  }
+  
+  function spawnPowerUp() {
+    if (Math.random() < 0.02) { // 2% chance to spawn a power-up each frame
+      const type = Math.random() < 0.5 ? powerUpTypes.damageBoost : powerUpTypes.jumpBoost;
+      const x = Math.random() * (2000 - 200) + 100; // Random x position within the game area
+      const y = windowheightRatio - minDistanceFromFloor - 100; // Spawn above the floor
+      const powerUp = createPowerUp(type, x, y);
+      activePowerUps.push(powerUp);
     }
   }
   return
