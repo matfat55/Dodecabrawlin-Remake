@@ -1,0 +1,717 @@
+/*General stuff*/
+@font-face{
+    font-family:"Pixelated MS Sans Serif";
+    font-style:normal;
+    font-weight:400;
+    src:url(fonts/ms_sans_serif.woff) format("woff");
+    src:url(fonts/ms_sans_serif.woff2) format("woff2")
+}
+@font-face{
+    font-family:"Pixelated MS Sans Serif";
+    font-style:normal;
+    font-weight:700;
+    src:url(fonts/ms_sans_serif_bold.woff) format("woff");
+    src:url(fonts/ms_sans_serif_bold.woff2) format("woff2")
+}
+@font-face{
+    font-family:"Alagard";
+    font-style:normal;
+    font-weight:700;
+    src:url(fonts/alagard.woff) format("woff");
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  image-rendering: pixelated;
+}
+
+p {
+  font-family: "Pixelated MS Sans Serif", Arial;
+}
+
+
+
+/*Fight screen stuff*/
+#game {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(#aaa, #555);
+}
+
+#backgroundOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('img/brickTexture.png');
+  background-size: 6.4vw 6.4vw;
+  opacity: 0.2;
+}
+
+.goldPile {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  height: 3.2vw;
+  width: 15vw;
+  transform: translateX(-50%);
+  background-image: url('img/GoldPile.png');
+  background-size: 15vw 3.2vw;
+}
+
+#player1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9.6vw;
+  height: 9.6vw;
+  background-image: url('img/0OrangeStand.gif');
+  background-size: 9.6vw 9.6vw;
+}
+
+#player2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9.6vw;
+  height: 9.6vw;
+  background-image: url('img/0OrangeStand.gif');
+  background-size: 9.6vw 9.6vw;
+}
+
+#VSHealthBar1 {
+  position: absolute;
+  top: 8px;
+  left: 0.4%;
+  width: 40%;
+  height: 64px;
+  background-image: url('img/HealthBar1.png');
+  background-size: 64px 64px;
+  border-right: 4px solid #df7700;
+  transition: 300ms ease-out;
+}
+
+#VSHealthBar2 {
+  position: absolute;
+  top: 8px;
+  right: 0.4%;
+  width: 40%;
+  height: 64px;
+  background-image: url('img/HealthBar1.png');
+  background-position: top right;
+  background-size: 64px 64px;
+  border-left: 4px solid #df7700;
+  transition: 300ms ease-out;
+}
+
+#VSHitCooldown1 {
+  position: absolute;
+  top: 8px;
+  left: 40.4%;
+  width: 12px;
+  height: 64px;
+  background-color: gold;
+}
+
+#VSHitCooldown2 {
+  position: absolute;
+  top: 8px;
+  right: 40.4%;
+  width: 12px;
+  height: 64px;
+  background-color: gold;
+}
+
+#VSHealthBarBack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background-color: #444;
+}
+
+#VSHealthBarBack2 {
+  position: absolute;
+  top: 8px;
+  left: 0.4%;
+  width: 40%;
+  height: 64px;
+  background-image: url('img/HealthBar1.png');
+  background-size: 64px 64px;
+  filter: grayscale(100%);
+}
+
+#VSHealthBarBack3 {
+  position: absolute;
+  top: 8px;
+  right: 0.4%;
+  width: 40%;
+  height: 64px;
+  background-image: url('img/HealthBar1.png');
+  background-size: 64px 64px;
+  filter: grayscale(100%);
+}
+
+#VSRoundText {
+  position: absolute;
+  top: 4px;
+  right: 40%;
+  width: 20%;
+  text-align: center;
+  color: #ccf;
+  font-size: 2vw;
+  line-height: 72px;
+  margin: 0;
+  text-shadow: 0.2vw 0.2vw #66a;
+  background-color: #444;
+}
+
+.pow {
+  position: absolute;
+  width: 9.6vw;
+  height: 9.6vw;
+  background-image: url('img/9HitFx.gif');
+  background-size: 9.6vw 9.6vw;
+}
+
+.jump {
+  position: absolute;
+  width: 9.6vw;
+  height: 9.6vw;
+  background-image: url('img/8JumpFx.gif');
+  background-size: 9.6vw 9.6vw;
+}
+
+.afterImage1 {
+  position: absolute;
+  width: 9.6vw;
+  height: 9.6vw;
+  background-image: url('img/0OrangeStand.gif');
+  background-size: 9.6vw 9.6vw;
+  opacity: 0.1;
+}
+
+.afterImage2 {
+  position: absolute;
+  width: 9.6vw;
+  height: 9.6vw;
+  background-image: url('img/0GreenStand.gif');
+  background-size: 9.6vw 9.6vw;
+  opacity: 0.1;
+}
+
+#levelNameMessage {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%) skew(345deg);
+  color: white;
+  font-size: 10vw;
+  margin: 0;
+  line-height: 12vw;
+  font-family: monospace;
+  transition: opacity 1200ms ease-in;
+  text-align: center;
+  font-weight: bold;
+}
+
+#readyMessage {
+  position: absolute;
+  top: -300px;
+  left: 50%;
+  width: 636px;
+  height: 224px;
+  background-image: url('img/Ready.png');
+  background-size: 636px 224px;
+  transform: translate(-50%, -50%);
+  transition: 1s ease-in-out;
+}
+
+#winMessage {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  width: 596px;
+  height: 192px;
+  background-image: url('img/Pwned.png');
+  background-size: 596px 192px;
+  transform: translate(-50%, -50%);
+  transition: 300ms ease-out;
+}
+
+#winMessageShadow, #winMessageShadow2 {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  width: 596px;
+  height: 192px;
+  background-image: url('img/PwnedShadow.png');
+  background-size: 596px 192px;
+  transform: translate(-50%, -50%);
+  transition: 300ms ease-out;
+}
+
+#winMessageShadow2 {
+  filter: hue-rotate(30deg);
+}
+
+#winMessage2 {
+  position: absolute;
+  top: calc(100% + 180px);
+  left: 50%;
+  width: 412px;
+  height: 64px;
+  background-image: url('img/Player1Wins.png');
+  background-size: 412px 64px;
+  transform: translate(-50%, -50%);
+  transition: 300ms ease-out;
+}
+
+
+
+
+/*Main title screen stuff*/
+#titleScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(#44a, #72a);
+}
+
+.titleBubble {
+  position: absolute;
+  background-color: #83b;
+  border-radius: 50%;
+  display: block;
+  z-index: 0;
+}
+
+#titleText {
+  position: absolute;
+  top: 3vh;
+  left: 50%;
+  width: 60vh;
+  height: 29.65vh;
+  transform: translateX(-50%);
+  background-image: url('img/Title.png');
+  background-size: 60vh 29.65vh;
+  display: block;
+  z-index: 1;
+}
+
+#menuButton1 {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 80vh;
+  height: 12.8vh;
+  transform: translateX(-50%);
+  background-image: url('img/MenuButton1.png');
+  background-size: 80vh 12.8vh;
+  display: block;
+  z-index: 2;
+  filter: invert(30%);
+}
+
+#menuButton1:hover {
+  cursor: pointer;
+}
+
+#menuButton1Back {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 80vh;
+  height: 12.8vh;
+  transform: translateX(-50%);
+  background-color: #628;
+  display: block;
+  z-index: 1;
+}
+
+#menuButton2 {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  width: 80vh;
+  height: 12.8vh;
+  transform: translateX(-50%);
+  background-image: url('img/MenuButton2.png');
+  background-size: 80vh 12.8vh;
+  display: block;
+  z-index: 2;
+}
+
+#menuButton2:hover {
+  cursor: pointer;
+}
+
+#menuButton2Back {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  width: 80vh;
+  height: 12.8vh;
+  transform: translateX(-50%);
+  background-color: #428;
+  display: block;
+  z-index: 1;
+}
+
+#menuButton3 {
+  position: absolute;
+  top: 78%;
+  left: 50%;
+  width: 80vh;
+  height: 12.8vh;
+  transform: translateX(-50%);
+  background-image: url('img/MenuButton3.png');
+  background-size: 80vh 12.8vh;
+  display: block;
+  z-index: 2;
+}
+
+#menuButton3:hover {
+  cursor: pointer;
+}
+
+#menuButton3Back {
+  position: absolute;
+  top: 78%;
+  left: 50%;
+  width: 80vh;
+  height: 12.8vh;
+  transform: translateX(-50%);
+  background-color: #228;
+  display: block;
+  z-index: 1;
+}
+
+#controlsCover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(50,50,50,0.6);
+  display: block;
+  z-index: 3;
+  opacity: 0;
+  display: none;
+  transition: opacity 750ms;
+}
+
+
+
+
+
+/*Campaign level select screen stuff*/
+#campaignScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #595;
+  background-image: url('img/MenuBack.png');
+  background-size: 12.8vh 12.8vh;
+  display: none;
+}
+
+#campaignXPStatBox {
+  position: absolute;
+  top: 20px;
+  left: 95px;
+  width: 350px;
+  height: 75px;
+  background-color: #666;
+  border: 8px outset;
+}
+
+#campaignLevelStat {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 150px;
+  height: 150px;
+  background-color: #666;
+  border: 8px outset;
+  border-radius: 50%;
+}
+
+#campaignLevelStatText {
+  text-align: center;
+  line-height: 150px;
+  font-size: 128px;
+  margin-left: 6px;
+  margin-top: 6px;
+  color: #4c4;
+  text-shadow: 8px 8px #272;
+  white-space: nowrap;
+  font-family: 'Alagard';
+}
+
+#campaignLevelContainer {
+  position: absolute;
+  top: 500px;
+  left: 500px;
+}
+
+.campaignLevel {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background-color: #080;
+  border: 4px solid #030;
+  border-radius: 50%;
+  user-select: none;
+}
+
+.campaignLevel:hover {
+  cursor: pointer;
+}
+
+#campaignLevelName {
+  text-align: center;
+  line-height: 100px;
+  font-size: 48px;
+  margin-left: 4px;
+  margin-top: 4px;
+  white-space: nowrap;
+  font-family: 'Alagard';
+}
+
+#campaignLevelInfoContainer {
+  position: absolute;
+  top: 0;
+  right: -18vw;
+  width: 18vw;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  transition: 500ms ease-out;
+  padding: 1vw;
+  box-sizing: border-box;  
+}
+
+#startLevelButton {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: 13.4vw;
+  height: 5.8vw;
+  transform: translateX(-50%);
+  background-image: url('img/StartButton.png');
+  background-size: 13.4vw 5.8vw;
+}
+
+#startLevelButton:hover {
+  cursor: pointer;
+}
+
+
+#campaignHomeButton {
+  color: white;
+  position: absolute;
+  bottom: calc(2.9vw + 30px);
+  left: 20px;
+  width: 64px;
+  cursor: pointer;
+  pointer-events: auto;
+  image-rendering: pixelated;
+}
+
+
+
+
+/*Character select screen stuff*/
+#selectScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('img/background.gif');
+  background-size: 6.4vw 6.4vw;
+  display: none;
+}
+
+#characterSelectText {
+  position: absolute;
+  top: 1.5vw;
+  left: 50%;
+  width: 25vw;
+  height: 11.42vw;
+  transform: translateX(-50%);
+  background-image: url('img/SelectYourCharacter.png');
+  background-size: 25vw 11.42vw;
+}
+
+#characterSelect1 {
+  position: absolute;
+  top: 10vw;
+  left: 5vw;
+  display: grid;
+  grid-template-columns: 10.4vw 10.4vw;
+  grid-template-rows: 10.4vw 10.4vw;
+}
+
+#characterSelect2 {
+  position: absolute;
+  top: 10vw;
+  right: 5vw;
+  display: grid;
+  grid-template-columns: 10.4vw 10.4vw;
+  grid-template-rows: 10.4vw 10.4vw;
+}
+
+.characterBox {
+  width: 10vw;
+  height: 10vw;
+  border: 0.4vw solid black;
+  display: inline-block;
+  background-color: #444;
+  background-image: url('img/0OrangeStand.gif');
+  background-size: 16vw 16vw;
+  background-position: center top;
+}
+
+.characterBox:hover {
+  cursor: pointer;
+  border: 0.4vw solid #a50;
+  z-index: 1;
+}
+
+#selectedCharacter1 {
+  position: absolute;
+  top: 14vw;
+  left: 26vw;
+  width: 20vw;
+  height: 20vw;
+  background-image: url('img/0OrangeStand.gif');
+  background-size: 20vw 20vw;
+}
+
+#selectedCharacter2 {
+  position: absolute;
+  top: 14vw;
+  right: 26vw;
+  width: 20vw;
+  height: 20vw;
+  background-image: url('img/0OrangeStand.gif');
+  background-size: 20vw 20vw;
+  transform: scaleX(-1)
+}
+
+.character1StatBox {
+  position: absolute;
+  left: 13.4vw;
+  width: 12vw;
+  height: 3vw;
+  background-color: #bbb;
+  border: 0.4vw solid black;
+}
+
+.character2StatBox {
+  position: absolute;
+  right: 13vw;
+  width: 12vw;
+  height: 3vw;
+  background-color: #bbb;
+  border: 0.4vw solid black;
+}
+
+.character1StatBar, .character2StatBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background-color: #0f0;
+  background-size: 2.4vw 3vw;
+}
+
+.character1StatText {
+  position: absolute;
+  left: 0;
+  width: 12vw;
+  color: black;
+  text-align: right;
+  margin: 0.8vw;
+  font-size: 2vw;
+}
+
+.character2StatText {
+  position: absolute;
+  right: 0;
+  width: 11.6vw;
+  color: black;
+  text-align: left;
+  margin: 0.8vw;
+  font-size: 2vw;
+}
+
+#startMatchButton {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: 13.4vw;
+  height: 5.8vw;
+  transform: translateX(-50%);
+  background-image: url('img/StartButton.png');
+  background-size: 13.4vw 5.8vw;
+}
+
+#startMatchButton:hover {
+  cursor: pointer;
+}
+
+.backButton {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 6.7vw;
+  height: 2.9vw;
+  background-image: url('img/BackButton.png');
+  background-size: 6.7vw 2.9vw;
+}
+
+.backButton:hover {
+  cursor: pointer;
+}
+
+
+
+/*Transition stuff*/
+#transitionCover1 {
+  position: absolute;
+  top: -52%;
+  left: 0;
+  width: 100%;
+  height: 51%;
+  background-color: #111;
+  transition: 700ms cubic-bezier(.19,.6,.39,.93);
+  display: block;
+  z-index: 999;
+}
+
+#transitionCover2 {
+  position: absolute;
+  bottom: -52%;
+  left: 0;
+  width: 100%;
+  height: 51%;
+  background-color: #111;
+  transition: 700ms cubic-bezier(.19,.6,.39,.93);
+  display: block;
+  z-index: 999;
+}
