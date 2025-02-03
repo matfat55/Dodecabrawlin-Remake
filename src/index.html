@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta content="DodecaBrawlin'" property="og:title" />
+  <meta content="An unusual fighting game." property="og:description" />
+  <meta content="https://demonins-item-shop.demonin.repl.co/games/dodecaBrawlin/" property="og:url" />
+  <meta content="https://demonins-item-shop.demonin.repl.co/games/dodecaBrawlin/img/Title.png" property="og:image" />
+  <meta content="#9a4cda" data-react-helmet="true" name="theme-color" />
+  <title>DodecaBrawlin'</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+  <link rel="icon" type="image/x-icon" href="img/Icon.png">
+  <link rel="preload" as="image" href="img/0OrangeStand.gif">
+  <link rel="preload" as="image" href="img/1OrangeRun.gif">
+  <link rel="preload" as="image" href="img/4OrangeUp.png">
+  <link rel="preload" as="image" href="img/5OrangeDown.png">
+  <link rel="preload" as="image" href="img/6OrangeOuch.png">
+  <link rel="preload" as="image" href="img/7OrangeDED.gif">
+  <link rel="preload" as="image" href="img/8JumpFx.gif">
+  <link rel="preload" as="image" href="img/9HitFx.gif">
+  <link rel="preload" as="image" href="img/Player1Wins.png">
+  <link rel="preload" as="image" href="img/Player2Wins.png">
+  <link rel="preload" as="image" href="img/Ready.png">
+  <link rel="preload" as="image" href="img/Go.png">
+</head>
+
+<body>
+  <!--The actual fighting part lol-->
+  <div id="game">
+    <div id="backgroundOverlay"></div>
+    <div class="goldPile"></div>
+    <div id="player1"></div>
+    <div id="player2"></div>
+    <div id="VSHealthBarBack">
+      <div id="VSHealthBarBack2"></div>
+      <div id="VSHealthBarBack3"></div>
+      <div id="VSHealthBar1"></div>
+      <div id="VSHealthBar2"></div>
+      <div id="VSHitCooldown1"></div>
+      <div id="VSHitCooldown2"></div>
+      <p id="VSRoundText">Round 1</p>
+    </div>
+    <p id="levelNameMessage"></p>
+    <div id="readyMessage"></div>
+    <div id="winMessageShadow2"></div>
+    <div id="winMessageShadow"></div>
+    <div id="winMessage"></div>
+    <div id="winMessage2"></div>
+  </div>
+
+  <!--Main title screen-->
+  <div id="titleScreen">
+    <div id="titleText"></div>
+    <div id="menuButton1Back"></div>
+    <div id="menuButton1"></div>
+    <div id="menuButton2Back"></div>
+    <div id="menuButton2" onclick="toScreen(2)"></div>
+    <div id="menuButton3Back"></div>
+    <div id="menuButton3" onclick="showControls()"></div>
+    <p style="position: absolute; bottom: 4px; right: 4px; margin: 0; font-size: 22px; display: block; z-index: 1;">ALPHA v0.1.3</p>
+  </div>
+
+  <!--Controls cover-->
+  <div id="controlsCover">
+    <center>
+    <p style="font-size: 2vw; width: 40%; margin-top: 5vw; color: white">DodecaBrawlin' is a fighting game. You can defeat enemies by landing on their head. Yes, this is the only way to attack. You can jump, dash, and if you time a jump right after landing you can bounce!</p>
+    <img src="img/Controls.png" style="width: 40%">
+    <div class="backButton" onclick="hideControls()"></div>
+    </center>
+  </div>
+
+  <!--Campaign level select screen-->
+  <div id="campaignScreen">
+    <div id="campaignXPStatBox">
+    </div>
+    <div id="campaignLevelStat">
+      <p id="campaignLevelStatText">1</p>
+    </div>
+    <div id="campaignLevelContainer">
+      <div class="campaignLevel">
+        <p id="campaignLevelName" onclick="showLevelInfo()" style="color: #030">H-1</p>
+      </div>
+    </div>
+    <div id="campaignLevelInfoContainer">
+      <p style="margin: 0; color: white; font-size: 3vw">Hills 1</p>
+      <p style="margin: 0; color: white; font-size: 1.5vw">H-1</p>
+      <div id="startLevelButton" onclick="startLevel()"></div>
+    </div>
+    <div class="backButton" onclick="toScreen(1)"></div>
+    <img src="img/homeIcon.png" id="campaignHomeButton" onclick="posSet(0,0)">
+  </div>
+
+  <!--Character select screen-->
+  <div id="selectScreen">
+    <div id="characterSelectText"></div>
+    <div id="characterSelect1">
+      <div class="characterBox" onclick="player1.dragonType = 0" onmouseover="updateStats(1,0)" onmouseout="updateStats(1,player1.dragonType)"></div>
+      <div class="characterBox" onclick="player1.dragonType = 1" onmouseover="updateStats(1,1)" onmouseout="updateStats(1,player1.dragonType)"></div>
+      <div class="characterBox" onclick="player1.dragonType = 2" onmouseover="updateStats(1,2)" onmouseout="updateStats(1,player1.dragonType)"></div>
+      <div class="characterBox" onclick="player1.dragonType = 3" onmouseover="updateStats(1,3)" onmouseout="updateStats(1,player1.dragonType)"></div>
+    </div>
+    <div class="character1StatBox" style="top: 33vw"><div class="character1StatBar" style="background-image: url('img/StatBarPiece1.png')"></div></div>
+    <div class="character1StatBox" style="top: 37vw"><div class="character1StatBar" style="background-image: url('img/StatBarPiece2.png')"></div></div>
+    <div class="character1StatBox" style="top: 41vw"><div class="character1StatBar" style="background-image: url('img/StatBarPiece3.png')"></div></div>
+    <p class="character1StatText" style="top: 33vw">Top speed</p>
+    <p class="character1StatText" style="top: 37vw">Jump height</p>
+    <p class="character1StatText" style="top: 41vw">Damage</p>
+    <img id="selectedCharacter1" src="img/0OrangeStand.gif">
+    <div id="characterSelect2">
+      <div class="characterBox" onclick="player2.dragonType = 0" onmouseover="updateStats(2,0)" onmouseout="updateStats(2,player2.dragonType)"></div>
+      <div class="characterBox" onclick="player2.dragonType = 1" onmouseover="updateStats(2,1)" onmouseout="updateStats(2,player2.dragonType)"></div>
+      <div class="characterBox" onclick="player2.dragonType = 2" onmouseover="updateStats(2,2)" onmouseout="updateStats(2,player2.dragonType)"></div>
+      <div class="characterBox" onclick="player2.dragonType = 3" onmouseover="updateStats(2,3)" onmouseout="updateStats(2,player2.dragonType)"></div>
+    </div>
+    <div class="character2StatBox" style="top: 33vw"><div class="character2StatBar" style="background-image: url('img/StatBarPiece1.png')"></div></div>
+    <div class="character2StatBox" style="top: 37vw"><div class="character2StatBar" style="background-image: url('img/StatBarPiece2.png')"></div></div>
+    <div class="character2StatBox" style="top: 41vw"><div class="character2StatBar" style="background-image: url('img/StatBarPiece3.png')"></div></div>
+    <p class="character2StatText" style="top: 33vw">Top speed</p>
+    <p class="character2StatText" style="top: 37vw">Jump height</p>
+    <p class="character2StatText" style="top: 41vw">Damage</p>
+    <img id="selectedCharacter2" src="img/0OrangeStand.gif">
+    <div id="startMatchButton" onclick="startMatch()"></div>
+    <div class="backButton" onclick="toScreen(1)"></div>
+  </div>
+
+  <!--Transition cover-->
+  <div id="transitionCover1"></div>
+  <div id="transitionCover2"></div>
+
+  
+  <script src="Mousetrap.js"></script>
+  <script src="script.js"></script>
+  <script src="render.js"></script>
+</body>
+
+</html>
