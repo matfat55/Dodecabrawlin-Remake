@@ -213,6 +213,7 @@ function updateStats(x=1,y=0) {
         break
     }
   }
+  updateSelectedCharacter(x, y); // P4d46
 }
 updateStats(1,0)
 updateStats(2,0)
@@ -548,14 +549,14 @@ function update() {
     else if (player1.yVelocity < -2) {document.getElementById("player1").style.backgroundImage = "url('img/4OrangeUp.png')"}
     else if (player1.yVelocity > 2) {document.getElementById("player1").style.backgroundImage = "url('img/5OrangeDown.png')"}
     else if (player1.xVelocity != 0) {document.getElementById("player1").style.backgroundImage = "url('img/1OrangeRun.gif')"}
-    else {document.getElementById("player1").style.backgroundImage = "url('img/0OrangeStand.gif')"}
+    else {document.getElementById("player1").style.backgroundImage = "url('img/0OrangeStand.gif')}
   
     if (player2.health == 0) {document.getElementById("player2").style.backgroundImage = "url('img/7OrangeDED.gif')"}
     else if (player2.hitCooldown > 30) {document.getElementById("player2").style.backgroundImage = "url('img/6OrangeOuch.png')"}
     else if (player2.yVelocity < -2) {document.getElementById("player2").style.backgroundImage = "url('img/4OrangeUp.png')"}
     else if (player2.yVelocity > 2) {document.getElementById("player2").style.backgroundImage = "url('img/5OrangeDown.png')"}
     else if (player2.xVelocity != 0) {document.getElementById("player2").style.backgroundImage = "url('img/1OrangeRun.gif')"}
-    else {document.getElementById("player2").style.backgroundImage = "url('img/0OrangeStand.gif')"}
+    else {document.getElementById("player2").style.backgroundImage = "url('img/0OrangeStand.gif')}
   
     //Handles afterimages
     player1totalVelocity = (player1.xVelocity ** 2 + player1.yVelocity ** 2) ** 0.5
@@ -570,7 +571,7 @@ function update() {
     else if (player1.yVelocity < -2) {afterImage1.style.backgroundImage = "url('img/4OrangeUp.png')"}
     else if (player1.yVelocity > 2) {afterImage1.style.backgroundImage = "url('img/5OrangeDown.png')"}
     else if (player1.xVelocity != 0) {afterImage1.style.backgroundImage = "url('img/1OrangeRun.gif')"}
-    else {afterImage1.style.backgroundImage = "url('img/0OrangeStand.gif')"}
+    else {afterImage1.style.backgroundImage = "url('img/0OrangeStand.gif')}
       document.body.appendChild(afterImage1.cloneNode(true))
     }
   
@@ -586,7 +587,7 @@ function update() {
       else if (player2.yVelocity < -2) {afterImage2.style.backgroundImage = "url('img/4OrangeUp.png')"}
       else if (player2.yVelocity > 2) {afterImage2.style.backgroundImage = "url('img/5OrangeDown.png')"}
       else if (player2.xVelocity != 0) {afterImage2.style.backgroundImage = "url('img/1OrangeRun.gif')"}
-      else {afterImage2.style.backgroundImage = "url('img/0OrangeStand.gif')"}
+      else {afterImage2.style.backgroundImage = "url('img/0OrangeStand.gif')}
       document.body.appendChild(afterImage2.cloneNode(true))
     }
   
@@ -597,7 +598,7 @@ function update() {
       document.getElementById("winMessageShadow2").style.top = (Math.sin((timeSinceStart - 200) / 300) * 6 + 50) + "%"
       document.getElementById("winMessage2").style.top = "calc(" + (Math.sin((timeSinceStart - 50) / 300) * 6 + 50) + "% + 150px)"
       if (player2.health == 0) {document.getElementById("winMessage2").style.backgroundImage = "url('img/Player1Wins.png')"}
-      else {document.getElementById("winMessage2").style.backgroundImage = "url('img/Player2Wins.png')"}
+      else {document.getElementById("winMessage2").style.backgroundImage = "url('img/Player2Wins.png')}
     }
     else {
       document.getElementById("winMessage").style.top = "-100px"
@@ -788,5 +789,15 @@ function damagePlayer(x) {
     roundFinished = true
     if (versusRound == 3) {setTimeout(endMatch, 3000)}
     else {setTimeout(function() {versusRound = Math.min(versusRound + 1, 3); startRound()}, 3000)}
+  }
+}
+
+function updateSelectedCharacter(player, dragonType) {
+  if (player === 1) {
+    player1.dragonType = dragonType;
+    document.getElementById('selectedCharacter1').src = `img/${dragonType}OrangeStand.gif`;
+  } else if (player === 2) {
+    player2.dragonType = dragonType;
+    document.getElementById('selectedCharacter2').src = `img/${dragonType}OrangeStand.gif`;
   }
 }
