@@ -1,725 +1,652 @@
-let windowheightRatio = 2000 / window.innerWidth * window.innerHeight 
+const CONFIG = {
+  movementSpeed: 3.3,
+  horizontalDrag: 1,
+  jumpHeight: 17,
+  maxBounceHeight: 26,
+  gravity: 1,
+  wallJumpSpeed: 30,
+  maxFallingSpeed: 35,
+  minDistanceFromEdge: 140,
+  minDistanceFromFloor: 160,
+  minAfterImageSpeed: 30,
+  characterHues: [0, 55, 230, 120],
+  statMultipliersList: [
+    [1.24, 1.3, 0.95],
+    [1.4, 1.2, 0.8],
+    [1.16, 1.4, 0.95],
+    [1.08, 1.3, 1.25]
+  ]
+};
 
-//Constants
-const movementSpeed = 3.3
-const HorizontalDrag = 1
-const jumpHeight = 17
-const maxBounceHeight = 26
-const gravity = 1
-const wallJumpSpeed = 30
-const maxFallingSpeed = 35
-const minDistanceFromEdge = 140
-const minDistanceFromFloor = 160
-const minAfterImageSpeed = 30
-const characterHues = [0, 55, 230, 120]
-const statMultipliersList = [[1.24,1.3,0.95],[1.4,1.2,0.8],[1.16,1.4,0.95],[1.08,1.3,1.25]] //Stats are (1 + top speed stat * 0.08), (1 + jump height stat * 0.1), (0.65 + damage stat * 0.15)
+const SCREENS = {
+  MAIN_TITLE: 1,
+  CHARACTER_SELECT: 2,
+  VS_MODE_GAMEPLAY: 3,
+  CAMPAIGN_LEVEL_SELECT: 4,
+  CAMPAIGN_MODE_GAMEPLAY: 5
+};
 
-//Variables
-let currentScreen = 1 //1 = Main title screen, 2 = Character select screen (Vs. Mode), 3 = Vs. mode gameplay, 4 = Campaign level select screen, 5 = Campaign mode gameplay
-let timeSinceStart = 0
-let versusRound = 1
-let inRound = false
-let roundFinished = false
-let levelScrollSpeed = 0
-let backgroundPosition = 0
+const ELEMENTS = {
+  titleBubble: createElement("div", "titleBubble"),
+  pow: createElement("div", "pow"),
+  jump: createElement("div", "jump"),
+  afterImage1: createElement("div", "afterImage1"),
+  afterImage2: createElement("div", "afterImage2")
+};
 
-campaignStats = {
-  level: 1,
+let currentScreen = SCREENS.MAIN_TITLE;
+let timeSinceStart = 0;
+let versusRound = 1;
+let inRound = false;
+let roundFinished = false;
+let levelScrollSpeed = 0;
+let backgroundPosition = 0;
+
+const campaignStats = {
+  level: 1
+};
+
+const player1 = createPlayer(0, (2000 - CONFIG.minDistanceFromEdge) * (1 / 3));
+const player2 = createPlayer(0, (2000 - CONFIG.minDistanceFromEdge) * (2 / 3));
+
+fetch("/levelData.json")
+  .then(response => response.json())
+  .then(data => levels = data.levels);
+
+setCharacterBoxColors();
+
+function createElement(tag, className) {
+  const element = document.createElement(tag);
+  element.classList.add(className);
+  return element;
 }
 
-player1 = {
-  dragonType: 0,
-  health: 100,
-  statMultipliers: [1, 1, 1], //Top speed, jump height, damage
-  hitCooldown: 0,
-  dashCooldown: 0,
-  bounceTimer: 0,
-  xPos: (2000 - minDistanceFromEdge) * (1/3),
-  yPos: windowheightRatio - minDistanceFromFloor,
-  xVelocity: 0,
-  yVelocity: 0,
-  yVelocityOnLastLand: 0,
-  keysPressed: [],
-  jumped: false,
+function createPlayer(dragonType, xPos) {
+  return {
+    dragonType,
+    health: 100,
+    statMultipliers: [1, 1, 1],
+    hitCooldown: 0,
+    dashCooldown: 0,
+    bounceTimer: 0,
+    xPos,
+    yPos: windowheightRatio - CONFIG.minDistanceFromFloor,
+    xVelocity: 0,
+    yVelocity: 0,
+    yVelocityOnLastLand: 0,
+    keysPressed: [],
+    jumped: false
+  };
 }
 
-player2 = {
-  dragonType: 0,
-  health: 100,
-  statMultipliers: [1, 1, 1], //Top speed, jump height, damage
-  hitCooldown: 0,
-  dashCooldown: 0,
-  bounceTimer: 0,
-  xPos: (2000 - minDistanceFromEdge) * (2/3),
-  yPos: windowheightRatio - minDistanceFromFloor,
-  xVelocity: 0,
-  yVelocity: 0,
-  yVelocityOnLastLand: 0,
-  keysPressed: [],
-  jumped: false,
-}
-
-//Gets the level data from levelData.json
-fetch("/levelData.json").then((response) => response.json()).then((data) => levels = data.levels); 
-
-//Sets the colours of the characters on the character select screen
-document.getElementsByClassName("characterBox")[1].style.filter = "hue-rotate(" + characterHues[1] + "deg)"
-document.getElementsByClassName("characterBox")[2].style.filter = "hue-rotate(" + characterHues[2] + "deg)"
-document.getElementsByClassName("characterBox")[3].style.filter = "hue-rotate(" + characterHues[3] + "deg)"
-document.getElementsByClassName("characterBox")[5].style.filter = "hue-rotate(" + characterHues[1] + "deg)"
-document.getElementsByClassName("characterBox")[6].style.filter = "hue-rotate(" + characterHues[2] + "deg)"
-document.getElementsByClassName("characterBox")[7].style.filter = "hue-rotate(" + characterHues[3] + "deg)"
-
-let titleBubble = document.createElement("div")
-titleBubble.classList.add("titleBubble")
-
-let pow = document.createElement("div")
-pow.classList.add("pow")
-
-let jump = document.createElement("div")
-jump.classList.add("jump")
-
-let afterImage1 = document.createElement("div")
-afterImage1.classList.add("afterImage1")
-
-let afterImage2 = document.createElement("div")
-afterImage2.classList.add("afterImage2")
-
-//Switches to a different screen
-function toScreen(x) {
-  document.getElementById("transitionCover1").style.top = "0%"
-  document.getElementById("transitionCover2").style.bottom = "0%"
-  //Main title screen
-  if (x==1) {
-    setTimeout(function() {
-      currentScreen = 1
-      document.getElementById("titleScreen").style.display = "block"
-      document.getElementById("selectScreen").style.display = "none"
-      document.getElementById("campaignScreen").style.display = "none"
-    }, 750)
+function setCharacterBoxColors() {
+  const characterBoxes = document.getElementsByClassName("characterBox");
+  for (let i = 1; i <= 3; i++) {
+    characterBoxes[i].style.filter = `hue-rotate(${CONFIG.characterHues[i]}deg)`;
+    characterBoxes[i + 4].style.filter = `hue-rotate(${CONFIG.characterHues[i]}deg)`;
   }
-  //Character select screen (Local versus mode)
-  else if (x==2) {
-    setTimeout(function() {
-      currentScreen = 2
-      document.getElementById("titleScreen").style.display = "none"
-      document.getElementById("selectScreen").style.display = "block"
-      document.getElementById("campaignScreen").style.display = "none"
-    }, 750)
-  }
-  //Campaign level select screen
-  else if (x==3) {
-    setTimeout(function() {
-      currentScreen = 4
-      document.getElementById("titleScreen").style.display = "none"
-      document.getElementById("selectScreen").style.display = "none"
-      document.getElementById("campaignScreen").style.display = "block"
-      document.getElementById("campaignLevelInfoContainer").style.right = "-17vw"
-    }, 750)
-  }
-  setTimeout(hideTransitionCover, 1200)
 }
 
-//Shows the control cover
+function toScreen(screen) {
+  document.getElementById("transitionCover1").style.top = "0%";
+  document.getElementById("transitionCover2").style.bottom = "0%";
+  setTimeout(() => {
+    switch (screen) {
+      case SCREENS.MAIN_TITLE:
+        currentScreen = SCREENS.MAIN_TITLE;
+        showElement("titleScreen");
+        hideElement("selectScreen");
+        hideElement("campaignScreen");
+        break;
+      case SCREENS.CHARACTER_SELECT:
+        currentScreen = SCREENS.CHARACTER_SELECT;
+        hideElement("titleScreen");
+        showElement("selectScreen");
+        hideElement("campaignScreen");
+        break;
+      case SCREENS.CAMPAIGN_LEVEL_SELECT:
+        currentScreen = SCREENS.CAMPAIGN_LEVEL_SELECT;
+        hideElement("titleScreen");
+        hideElement("selectScreen");
+        showElement("campaignScreen");
+        document.getElementById("campaignLevelInfoContainer").style.right = "-17vw";
+        break;
+    }
+    setTimeout(hideTransitionCover, 1200);
+  }, 750);
+}
+
+function showElement(id) {
+  document.getElementById(id).style.display = "block";
+}
+
+function hideElement(id) {
+  document.getElementById(id).style.display = "none";
+}
+
 function showControls() {
-  document.getElementById("controlsCover").style.display = "block"
-  setTimeout(function() {document.getElementById("controlsCover").style.opacity = "1"}, 50)
+  const controlsCover = document.getElementById("controlsCover");
+  controlsCover.style.display = "block";
+  setTimeout(() => controlsCover.style.opacity = "1", 50);
 }
 
-//Hides the control cover
 function hideControls() {
-  document.getElementById("controlsCover").style.opacity = "0"
-  setTimeout(function() {document.getElementById("controlsCover").style.display = "none"}, 1000)
+  const controlsCover = document.getElementById("controlsCover");
+  controlsCover.style.opacity = "0";
+  setTimeout(() => controlsCover.style.display = "none", 1000);
 }
 
-//Shows the level info in the campaign screen
 function showLevelInfo() {
-  document.getElementById("campaignLevelInfoContainer").style.right = "0"
+  document.getElementById("campaignLevelInfoContainer").style.right = "0";
 }
 
-//Updates the stat bars in the character select screen (could definitely be shortened)
-function updateStats(x=1,y=0) {
-  if (x==0) {
-    document.getElementsByClassName("character1StatBar")[0].style.width = "0%"
-    document.getElementsByClassName("character1StatBar")[1].style.width = "0%"
-    document.getElementsByClassName("character1StatBar")[2].style.width = "0%"
-    document.getElementsByClassName("character2StatBar")[0].style.width = "0%"
-    document.getElementsByClassName("character2StatBar")[1].style.width = "0%"
-    document.getElementsByClassName("character2StatBar")[2].style.width = "0%"
-  }
-  else if (x==1) {
-    switch (y) {
-      case 0:
-        document.getElementsByClassName("character1StatBar")[0].style.width = "60%"
-        document.getElementsByClassName("character1StatBar")[1].style.width = "60%"
-        document.getElementsByClassName("character1StatBar")[2].style.width = "40%"
-        break
-      case 1:
-        document.getElementsByClassName("character1StatBar")[0].style.width = "100%"
-        document.getElementsByClassName("character1StatBar")[1].style.width = "40%"
-        document.getElementsByClassName("character1StatBar")[2].style.width = "20%"
-        break
-      case 2:
-        document.getElementsByClassName("character1StatBar")[0].style.width = "40%"
-        document.getElementsByClassName("character1StatBar")[1].style.width = "80%"
-        document.getElementsByClassName("character1StatBar")[2].style.width = "40%"
-        break
-      case 3:
-        document.getElementsByClassName("character1StatBar")[0].style.width = "20%"
-        document.getElementsByClassName("character1StatBar")[1].style.width = "60%"
-        document.getElementsByClassName("character1StatBar")[2].style.width = "80%"
-        break
-    }
-  }
-  else if (x==2) {
-    switch (y) {
-      case 0:
-        document.getElementsByClassName("character2StatBar")[0].style.width = "60%"
-        document.getElementsByClassName("character2StatBar")[1].style.width = "60%"
-        document.getElementsByClassName("character2StatBar")[2].style.width = "40%"
-        break
-      case 1:
-        document.getElementsByClassName("character2StatBar")[0].style.width = "100%"
-        document.getElementsByClassName("character2StatBar")[1].style.width = "40%"
-        document.getElementsByClassName("character2StatBar")[2].style.width = "20%"
-        break
-      case 2:
-        document.getElementsByClassName("character2StatBar")[0].style.width = "40%"
-        document.getElementsByClassName("character2StatBar")[1].style.width = "80%"
-        document.getElementsByClassName("character2StatBar")[2].style.width = "40%"
-        break
-      case 3:
-        document.getElementsByClassName("character2StatBar")[0].style.width = "20%"
-        document.getElementsByClassName("character2StatBar")[1].style.width = "60%"
-        document.getElementsByClassName("character2StatBar")[2].style.width = "80%"
-        break
-    }
-  }
+function updateStats(player, type) {
+  const statBars = document.getElementsByClassName(`character${player}StatBar`);
+  const stats = CONFIG.statMultipliersList[type];
+  statBars[0].style.width = `${stats[0] * 100}%`;
+  statBars[1].style.width = `${stats[1] * 100}%`;
+  statBars[2].style.width = `${stats[2] * 100}%`;
 }
-updateStats(1,0)
-updateStats(2,0)
+
+updateStats(1, 0);
+updateStats(2, 0);
 
 function startLevel() {
-  fetch("/levelData.json").then((response) => response.json()).then((data) => levelName = data.levels[0][0]);
-  document.getElementById("levelNameMessage").style.opacity = "1"
-  player1.statMultipliers = statMultipliersList[player1.dragonType]
-  levelScrollSpeed = 4
-  document.getElementById("player2").style.display = "none"
-  document.getElementById("transitionCover1").style.top = "0%"
-  document.getElementById("transitionCover2").style.bottom = "0%"
-  setTimeout(function() {
-    currentScreen = 5
-    document.getElementById("campaignScreen").style.display = "none"
-    document.getElementById("VSHealthBarBack").style.display = "none"
-  }, 750)
-  setTimeout(function() {
-    document.getElementById("transitionCover1").style.top = "-52%"
-    document.getElementById("transitionCover2").style.bottom = "-52%"
-    inRound = true
-  }, 1200)
-  setTimeout(renderLevelName, 1400, 0)
+  fetch("/levelData.json")
+    .then(response => response.json())
+    .then(data => levelName = data.levels[0][0]);
+  document.getElementById("levelNameMessage").style.opacity = "1";
+  player1.statMultipliers = CONFIG.statMultipliersList[player1.dragonType];
+  levelScrollSpeed = 4;
+  document.getElementById("player2").style.display = "none";
+  document.getElementById("transitionCover1").style.top = "0%";
+  document.getElementById("transitionCover2").style.bottom = "0%";
+  setTimeout(() => {
+    currentScreen = SCREENS.CAMPAIGN_MODE_GAMEPLAY;
+    hideElement("campaignScreen");
+    hideElement("VSHealthBarBack");
+  }, 750);
+  setTimeout(() => {
+    document.getElementById("transitionCover1").style.top = "-52%";
+    document.getElementById("transitionCover2").style.bottom = "-52%";
+    inRound = true;
+  }, 1200);
+  setTimeout(renderLevelName, 1400, 0);
 }
 
-//Very very scuffed code that renders the level name text
 function renderLevelName(x) {
-  //For each character in the level name, either set to a random letter or the right letter from the name based on x (x increments until the level name length)
-  if (x<(levelName.length + 10)*3) {
-    levelNameString = ""
-    for (i=0;i<levelName.length;i++) {
-      if (x/3>i+4) levelNameString += levelName[i]
-      else if (x/3>i) levelNameString += (Math.floor(Math.random() * 26 + 10)).toString(36)
-      else levelNameString += "&#160"
+  if (x < (levelName.length + 10) * 3) {
+    let levelNameString = "";
+    for (let i = 0; i < levelName.length; i++) {
+      if (x / 3 > i + 4) levelNameString += levelName[i];
+      else if (x / 3 > i) levelNameString += (Math.floor(Math.random() * 26 + 10)).toString(36);
+      else levelNameString += "&#160";
     }
-    document.getElementById("levelNameMessage").innerHTML = levelNameString
-    setTimeout(renderLevelName, 30, x+1)
+    document.getElementById("levelNameMessage").innerHTML = levelNameString;
+    setTimeout(renderLevelName, 30, x + 1);
+  } else if (x === (levelName.length + 10) * 3) {
+    document.getElementById("levelNameMessage").style.opacity = "0";
   }
-  else if (x==(levelName.length + 10)*3) {document.getElementById("levelNameMessage").style.opacity = "0"}
 }
 
 function startMatch() {
-  versusRound = 1
-  player1.statMultipliers = statMultipliersList[player1.dragonType]
-  player2.statMultipliers = statMultipliersList[player2.dragonType]
-  document.getElementById("player2").style.display = "block"
-  document.getElementById("player1").style.filter = "hue-rotate(" + characterHues[player1.dragonType] + "deg)"
-  document.getElementById("VSHealthBar1").style.filter = "hue-rotate(" + characterHues[player1.dragonType] + "deg)"
-  document.getElementById("player2").style.filter = "hue-rotate(" + characterHues[player2.dragonType] + "deg)"
-  document.getElementById("VSHealthBar2").style.filter = "hue-rotate(" + characterHues[player2.dragonType] + "deg)"
-  document.getElementById("transitionCover1").style.top = "0%"
-  document.getElementById("transitionCover2").style.bottom = "0%"
-  setTimeout(function() {
-    currentScreen = 3
-    document.getElementById("selectScreen").style.display = "none"
-    document.getElementById("VSHealthBarBack").style.display = "block"
-  }, 750)
-  setTimeout(startRound, 1200)
+  versusRound = 1;
+  player1.statMultipliers = CONFIG.statMultipliersList[player1.dragonType];
+  player2.statMultipliers = CONFIG.statMultipliersList[player2.dragonType];
+  document.getElementById("player2").style.display = "block";
+  document.getElementById("player1").style.filter = `hue-rotate(${CONFIG.characterHues[player1.dragonType]}deg)`;
+  document.getElementById("VSHealthBar1").style.filter = `hue-rotate(${CONFIG.characterHues[player1.dragonType]}deg)`;
+  document.getElementById("player2").style.filter = `hue-rotate(${CONFIG.characterHues[player2.dragonType]}deg)`;
+  document.getElementById("VSHealthBar2").style.filter = `hue-rotate(${CONFIG.characterHues[player2.dragonType]}deg)`;
+  document.getElementById("transitionCover1").style.top = "0%";
+  document.getElementById("transitionCover2").style.bottom = "0%";
+  setTimeout(() => {
+    currentScreen = SCREENS.VS_MODE_GAMEPLAY;
+    hideElement("selectScreen");
+    showElement("VSHealthBarBack");
+  }, 750);
+  setTimeout(startRound, 1200);
 }
 
 function startRound() {
-  document.getElementById("transitionCover1").style.top = "-52%"
-  document.getElementById("transitionCover2").style.bottom = "-52%"
-  document.getElementById("readyMessage").style.backgroundImage = "url('img/Ready.png')"
-  document.getElementById("readyMessage").style.top = "50%"
-  player1.health = 100
-  player2.health = 100
-  document.getElementById("VSHealthBar1").style.width = (player1.health / 2.5) + "%"
-  document.getElementById("VSHealthBar2").style.width = (player2.health / 2.5) + "%"
-  player1.xVelocity = 0
-  player1.yVelocity = 0
-  player1.xPos = (2000 - minDistanceFromEdge) * (1/3)
-  player1.yPos = windowheightRatio - minDistanceFromFloor
-  document.getElementById("player1").style.transform = null
-  player2.xVelocity = 0
-  player2.yVelocity = 0
-  player2.xPos = (2000 - minDistanceFromEdge) * (2/3)
-  player2.yPos = windowheightRatio - minDistanceFromFloor
-  document.getElementById("player2").style.transform = "scaleX(-1)"
-  if (versusRound == 1) {
-    document.getElementById("VSRoundText").innerHTML = "Round 1"
-    document.getElementById("VSRoundText").style.color = "#ccf"
-    document.getElementById("VSRoundText").style.textShadow = "0.2vw 0.2vw #66a"
+  document.getElementById("transitionCover1").style.top = "-52%";
+  document.getElementById("transitionCover2").style.bottom = "-52%";
+  document.getElementById("readyMessage").style.backgroundImage = "url('img/Ready.png')";
+  document.getElementById("readyMessage").style.top = "50%";
+  player1.health = 100;
+  player2.health = 100;
+  document.getElementById("VSHealthBar1").style.width = `${player1.health / 2.5}%`;
+  document.getElementById("VSHealthBar2").style.width = `${player2.health / 2.5}%`;
+  resetPlayerPosition(player1, (2000 - CONFIG.minDistanceFromEdge) * (1 / 3));
+  resetPlayerPosition(player2, (2000 - CONFIG.minDistanceFromEdge) * (2 / 3));
+  setRoundText();
+  roundFinished = false;
+  inRound = false;
+  setTimeout(() => {
+    document.getElementById("readyMessage").style.backgroundImage = "url('img/Go.png')";
+    document.getElementById("readyMessage").style.top = "-300px";
+    inRound = true;
+  }, 2000);
+}
+
+function resetPlayerPosition(player, xPos) {
+  player.xVelocity = 0;
+  player.yVelocity = 0;
+  player.xPos = xPos;
+  player.yPos = windowheightRatio - CONFIG.minDistanceFromFloor;
+  document.getElementById(`player${player === player1 ? 1 : 2}`).style.transform = player === player1 ? null : "scaleX(-1)";
+}
+
+function setRoundText() {
+  const roundText = document.getElementById("VSRoundText");
+  switch (versusRound) {
+    case 1:
+      roundText.innerHTML = "Round 1";
+      roundText.style.color = "#ccf";
+      roundText.style.textShadow = "0.2vw 0.2vw #66a";
+      break;
+    case 2:
+      roundText.innerHTML = "Round 2";
+      roundText.style.color = "#fec";
+      roundText.style.textShadow = "0.2vw 0.2vw #a86";
+      break;
+    case 3:
+      roundText.innerHTML = "Round 3";
+      roundText.style.color = "#cfc";
+      roundText.style.textShadow = "0.2vw 0.2vw #6a6";
+      break;
   }
-  else if (versusRound == 2) {
-    document.getElementById("VSRoundText").innerHTML = "Round 2"
-    document.getElementById("VSRoundText").style.color = "#fec"
-    document.getElementById("VSRoundText").style.textShadow = "0.2vw 0.2vw #a86"
-  }
-  else if (versusRound == 3) {
-    document.getElementById("VSRoundText").innerHTML = "Round 3"
-    document.getElementById("VSRoundText").style.color = "#cfc"
-    document.getElementById("VSRoundText").style.textShadow = "0.2vw 0.2vw #6a6"
-  }
-  roundFinished = false
-  inRound = false
-  setTimeout(function() {
-    document.getElementById("readyMessage").style.backgroundImage = "url('img/Go.png')"
-    document.getElementById("readyMessage").style.top = "-300px"
-    inRound = true
-  }, 2000)
 }
 
 function endMatch() {
-  document.getElementById("transitionCover1").style.top = "0%"
-  document.getElementById("transitionCover2").style.bottom = "0%"
-  setTimeout(function() {
-    currentScreen = 2
-    document.getElementById("selectScreen").style.display = "block"
-  }, 750)
-  setTimeout(hideTransitionCover, 1200)
+  document.getElementById("transitionCover1").style.top = "0%";
+  document.getElementById("transitionCover2").style.bottom = "0%";
+  setTimeout(() => {
+    currentScreen = SCREENS.CHARACTER_SELECT;
+    showElement("selectScreen");
+  }, 750);
+  setTimeout(hideTransitionCover, 1200);
 }
 
 function hideTransitionCover() {
-  document.getElementById("transitionCover1").style.top = "-52%"
-  document.getElementById("transitionCover2").style.bottom = "-52%"
+  document.getElementById("transitionCover1").style.top = "-52%";
+  document.getElementById("transitionCover2").style.bottom = "-52%";
 }
 
 document.addEventListener('mousemove', logKey);
 
 function logKey(e) {
-  if (currentScreen == 1) {
-    document.getElementById("menuButton1").style.left = (45 + (e.clientX / window.innerWidth * 10)) + "%"
-    document.getElementById("menuButton1").style.top = (37 + (e.clientY / window.innerHeight * 10)) + "%"
-    document.getElementById("menuButton2").style.left = (45 + (e.clientX / window.innerWidth * 10)) + "%"
-    document.getElementById("menuButton2").style.top = (55 + (e.clientY / window.innerHeight * 10)) + "%"
-    document.getElementById("menuButton3").style.left = (45 + (e.clientX / window.innerWidth * 10)) + "%"
-    document.getElementById("menuButton3").style.top = (73 + (e.clientY / window.innerHeight * 10)) + "%"
+  if (currentScreen === SCREENS.MAIN_TITLE) {
+    const xOffset = (e.clientX / window.innerWidth * 10);
+    const yOffset = (e.clientY / window.innerHeight * 10);
+    document.getElementById("menuButton1").style.left = `${45 + xOffset}%`;
+    document.getElementById("menuButton1").style.top = `${37 + yOffset}%`;
+    document.getElementById("menuButton2").style.left = `${45 + xOffset}%`;
+    document.getElementById("menuButton2").style.top = `${55 + yOffset}%`;
+    document.getElementById("menuButton3").style.left = `${45 + xOffset}%`;
+    document.getElementById("menuButton3").style.top = `${73 + yOffset}%`;
   }
 }
 
-document.getElementById("menuButton1Back").style.left = "50%"
-document.getElementById("menuButton1Back").style.top = "42%"
-document.getElementById("menuButton2Back").style.left = "50%"
-document.getElementById("menuButton2Back").style.top = "60%"
-document.getElementById("menuButton3Back").style.left = "50%"
-document.getElementById("menuButton3Back").style.top = "78%"
+document.getElementById("menuButton1Back").style.left = "50%";
+document.getElementById("menuButton1Back").style.top = "42%";
+document.getElementById("menuButton2Back").style.left = "50%";
+document.getElementById("menuButton2Back").style.top = "60%";
+document.getElementById("menuButton3Back").style.left = "50%";
+document.getElementById("menuButton3Back").style.top = "78%";
 
 function update() {
-  windowheightRatio = 2000 / window.innerWidth * window.innerHeight 
-  timeSinceStart += 15
+  windowheightRatio = 2000 / window.innerWidth * window.innerHeight;
+  timeSinceStart += 15;
 
-  //Title screen stuff
-  if (currentScreen == 1) {
-    document.getElementById("titleText").style.top = (Math.sin(timeSinceStart / 500) / 2 + 1.5) + "vw"
-    //Whooshy button backgrounds (May cause lag, can be removed if need be)
-    document.getElementById("menuButton1Back").style.left = ((parseFloat(document.getElementById("menuButton1Back").style.left) - parseFloat(document.getElementById("menuButton1").style.left)) / 1.1 + parseFloat(document.getElementById("menuButton1").style.left)) + "%"
-    document.getElementById("menuButton1Back").style.top = ((parseFloat(document.getElementById("menuButton1Back").style.top) - parseFloat(document.getElementById("menuButton1").style.top)) / 1.1 + parseFloat(document.getElementById("menuButton1").style.top)) + "%"
-    document.getElementById("menuButton2Back").style.left = ((parseFloat(document.getElementById("menuButton2Back").style.left) - parseFloat(document.getElementById("menuButton2").style.left)) / 1.1 + parseFloat(document.getElementById("menuButton2").style.left)) + "%"
-    document.getElementById("menuButton2Back").style.top = ((parseFloat(document.getElementById("menuButton2Back").style.top) - parseFloat(document.getElementById("menuButton2").style.top)) / 1.1 + parseFloat(document.getElementById("menuButton2").style.top)) + "%"
-    document.getElementById("menuButton3Back").style.left = ((parseFloat(document.getElementById("menuButton3Back").style.left) - parseFloat(document.getElementById("menuButton3").style.left)) / 1.1 + parseFloat(document.getElementById("menuButton3").style.left)) + "%"
-    document.getElementById("menuButton3Back").style.top = ((parseFloat(document.getElementById("menuButton3Back").style.top) - parseFloat(document.getElementById("menuButton3").style.top)) / 1.1 + parseFloat(document.getElementById("menuButton3").style.top)) + "%"
+  if (currentScreen === SCREENS.MAIN_TITLE) {
+    updateTitleScreen();
+  }
 
-    //Handles title screen bubbles
-    for (i=0;i<document.getElementsByClassName("titleBubble").length;i++) {
-      document.getElementsByClassName("titleBubble")[i].style.top = (parseFloat(document.getElementsByClassName("titleBubble")[i].style.top) - 0.3) + "%"
-      document.getElementsByClassName("titleBubble")[i].style.opacity = (parseFloat(document.getElementsByClassName("titleBubble")[i].style.opacity) - 0.007)
-      document.getElementsByClassName("titleBubble")[i].style.left = (parseFloat(document.getElementsByClassName("titleBubble")[i].style.left) - parseFloat(document.getElementsByClassName("titleBubble")[i].dataset.xvelocity)) + "%"
-      if (parseFloat(document.getElementsByClassName("titleBubble")[i].style.opacity) <= 0) {document.getElementsByClassName("titleBubble")[i].remove();i--}
+  if (currentScreen === SCREENS.CHARACTER_SELECT) {
+    updateCharacterSelectScreen();
+  }
+
+  if (currentScreen === SCREENS.CAMPAIGN_MODE_GAMEPLAY && inRound) {
+    backgroundPosition -= levelScrollSpeed;
+  }
+  document.getElementById("backgroundOverlay").style.backgroundPosition = `${backgroundPosition}px 0px`;
+
+  removeOldElements("pow", 150);
+  removeOldElements("jump", 150);
+  removeOldElements("afterImage1", 150);
+  removeOldElements("afterImage2", 150);
+
+  handlePlayerMovement(player1, 65, 68);
+  handlePlayerMovement(player2, 74, 76);
+
+  updateCooldowns(player1);
+  updateCooldowns(player2);
+
+  updatePlayerPosition(player1);
+  updatePlayerPosition(player2);
+
+  handlePlayerDamage(player1, player2);
+  handlePlayerDamage(player2, player1);
+
+  if (currentScreen === SCREENS.VS_MODE_GAMEPLAY || currentScreen === SCREENS.CAMPAIGN_MODE_GAMEPLAY) {
+    updatePlayerElements(player1, 1);
+    updatePlayerElements(player2, 2);
+    updateWinState();
+  }
+}
+
+function updateTitleScreen() {
+  document.getElementById("titleText").style.top = `${Math.sin(timeSinceStart / 500) / 2 + 1.5}vw`;
+  updateButtonBackgrounds();
+  handleTitleScreenBubbles();
+}
+
+function updateButtonBackgrounds() {
+  updateButtonBackground("menuButton1", "menuButton1Back");
+  updateButtonBackground("menuButton2", "menuButton2Back");
+  updateButtonBackground("menuButton3", "menuButton3Back");
+}
+
+function updateButtonBackground(buttonId, backgroundId) {
+  const button = document.getElementById(buttonId);
+  const background = document.getElementById(backgroundId);
+  background.style.left = `${(parseFloat(background.style.left) - parseFloat(button.style.left)) / 1.1 + parseFloat(button.style.left)}%`;
+  background.style.top = `${(parseFloat(background.style.top) - parseFloat(button.style.top)) / 1.1 + parseFloat(button.style.top)}%`;
+}
+
+function handleTitleScreenBubbles() {
+  const bubbles = document.getElementsByClassName("titleBubble");
+  for (let i = 0; i < bubbles.length; i++) {
+    const bubble = bubbles[i];
+    bubble.style.top = `${parseFloat(bubble.style.top) - 0.3}%`;
+    bubble.style.opacity = `${parseFloat(bubble.style.opacity) - 0.007}`;
+    bubble.style.left = `${parseFloat(bubble.style.left) - parseFloat(bubble.dataset.xvelocity)}%`;
+    if (parseFloat(bubble.style.opacity) <= 0) {
+      bubble.remove();
+      i--;
     }
-    if (Math.floor(Math.random() * 20) == 0) {
-      //Creates a title screen bubble
-      titleBubble.style.left = (Math.random() * 110 - 10) + "%"
-      titleBubbleSize = (Math.random() * 25 + 5)
-      titleBubble.style.width = titleBubbleSize + "vh"
-      titleBubble.style.height = titleBubbleSize + "vh"
-      titleBubble.style.top = "100%"
-      titleBubble.style.opacity = "1"
-      titleBubble.setAttribute("data-xvelocity", (Math.random() / 5 - 0.1))
-      document.getElementById("titleScreen").appendChild(titleBubble.cloneNode(true))
-    }
   }
+  if (Math.floor(Math.random() * 20) === 0) {
+    createTitleScreenBubble();
+  }
+}
 
-  //Character select screen stuff
-  if (currentScreen == 2) {
-    document.getElementById("selectScreen").style.backgroundPosition = (-timeSinceStart / 500) + "vw " + (-timeSinceStart / 500) + "vw"
-    document.getElementById("characterSelectText").style.top = (Math.sin(timeSinceStart / 500) / 2 + 1.5) + "vw"
-    document.getElementById("selectedCharacter1").style.filter = "hue-rotate(" + characterHues[player1.dragonType] + "deg)"
-    document.getElementById("selectedCharacter2").style.filter = "hue-rotate(" + characterHues[player2.dragonType] + "deg)"
-  }
+function createTitleScreenBubble() {
+  const bubble = ELEMENTS.titleBubble.cloneNode(true);
+  bubble.style.left = `${Math.random() * 110 - 10}%`;
+  const size = Math.random() * 25 + 5;
+  bubble.style.width = `${size}vh`;
+  bubble.style.height = `${size}vh`;
+  bubble.style.top = "100%";
+  bubble.style.opacity = "1";
+  bubble.setAttribute("data-xvelocity", Math.random() / 5 - 0.1);
+  document.getElementById("titleScreen").appendChild(bubble);
+}
 
-  //Moves the background (temporary!)
-  if (currentScreen == 5 && inRound) backgroundPosition -= levelScrollSpeed
-  document.getElementById("backgroundOverlay").style.backgroundPosition = backgroundPosition + "px 0px"
-    
-  //Removes pow effects
-  for (i=0;i<document.getElementsByClassName("pow").length;i++) {if (timeSinceStart > parseInt(document.getElementsByClassName("pow")[i].dataset.timespawned) + 150) {document.getElementsByClassName("pow")[i].remove();i--}}
-  //Removes bounce effects
-  for (i=0;i<document.getElementsByClassName("jump").length;i++) {if (timeSinceStart > parseInt(document.getElementsByClassName("jump")[i].dataset.timespawned) + 150) {document.getElementsByClassName("jump")[i].remove();i--}}
-  //Removes afterimages
-  for (i=0;i<document.getElementsByClassName("afterImage1").length;i++) {if (timeSinceStart > parseInt(document.getElementsByClassName("afterImage1")[i].dataset.timespawned) + 150) {document.getElementsByClassName("afterImage1")[i].remove();i--}}
-  for (i=0;i<document.getElementsByClassName("afterImage2").length;i++) {if (timeSinceStart > parseInt(document.getElementsByClassName("afterImage2")[i].dataset.timespawned) + 150) {document.getElementsByClassName("afterImage2")[i].remove();i--}}
-  
-  //Detects key presses
-  if (player1.keysPressed[65] && player1.health > 0 && inRound) {
-    document.getElementById("player1").style.transform = "scaleX(-1)"
-    if (player1.xVelocity > (movementSpeed * player1.statMultipliers[0]) * -5) player1.xVelocity = player1.xVelocity * 0.8 - (movementSpeed * player1.statMultipliers[0])
-  }
-  if (player1.keysPressed[68] && player1.health > 0 && inRound) {
-    document.getElementById("player1").style.transform = null
-    if (player1.xVelocity < (movementSpeed * player1.statMultipliers[0]) * 5) player1.xVelocity = player1.xVelocity * 0.8 + (movementSpeed * player1.statMultipliers[0])
-  }
+function updateCharacterSelectScreen() {
+  document.getElementById("selectScreen").style.backgroundPosition = `${-timeSinceStart / 500}vw ${-timeSinceStart / 500}vw`;
+  document.getElementById("characterSelectText").style.top = `${Math.sin(timeSinceStart / 500) / 2 + 1.5}vw`;
+  document.getElementById("selectedCharacter1").style.filter = `hue-rotate(${CONFIG.characterHues[player1.dragonType]}deg)`;
+  document.getElementById("selectedCharacter2").style.filter = `hue-rotate(${CONFIG.characterHues[player2.dragonType]}deg)`;
+}
 
-  if (player2.keysPressed[74] && player2.health > 0 && inRound && currentScreen == 3) {
-    document.getElementById("player2").style.transform = "scaleX(-1)"
-    if (player2.xVelocity > (movementSpeed * player2.statMultipliers[0]) * -5) player2.xVelocity = player2.xVelocity * 0.8 - (movementSpeed * player2.statMultipliers[0])
-  }
-  if (player2.keysPressed[76] && player2.health > 0 && inRound && currentScreen == 3) {
-    document.getElementById("player2").style.transform = null
-    if (player2.xVelocity < (movementSpeed * player2.statMultipliers[0]) * 5) player2.xVelocity = player2.xVelocity * 0.8 + (movementSpeed * player2.statMultipliers[0])
-  }
-
-  //Detects hit cooldowns
-  if (player1.hitCooldown > 0) player1.hitCooldown--
-  if (player2.hitCooldown > 0) player2.hitCooldown--
-
-  //Detects dash cooldowns
-  if (player1.dashCooldown > 0) player1.dashCooldown--
-  if (player2.dashCooldown > 0) player2.dashCooldown--
-
-  //Detects bounce timers
-  if (player1.bounceTimer > 0) player1.bounceTimer--
-  if (player2.bounceTimer > 0) player2.bounceTimer--
-  
-  //Handles X-position
-  player1.xPos += player1.xVelocity
-  if (currentScreen == 5 && inRound) player1.xPos -= levelScrollSpeed
-  if (currentScreen == 3 && player1.xPos > 2000 - minDistanceFromEdge) {player1.xPos = 2000 - minDistanceFromEdge; player1.xVelocity = 0}
-  if (currentScreen == 3 && player1.xPos < minDistanceFromEdge - 192) {player1.xPos = minDistanceFromEdge - 192; player1.xVelocity = 0}
-
-  player2.xPos += player2.xVelocity
-  if (player2.xPos > 2000 - minDistanceFromEdge) {player2.xPos = 2000 - minDistanceFromEdge; player2.xVelocity = 0}
-  if (player2.xPos < minDistanceFromEdge - 192) {player2.xPos = minDistanceFromEdge - 192; player2.xVelocity = 0}
-
-  //Handles X-velocity
-  if (player1.yPos == windowheightRatio - minDistanceFromFloor) {
-    player1.xVelocity = Math.round(player1.xVelocity / HorizontalDrag) * HorizontalDrag
-    if (player1.xVelocity > 0) player1.xVelocity -= HorizontalDrag
-    if (player1.xVelocity < 0) player1.xVelocity += HorizontalDrag
-  }
-  else {
-    player1.xVelocity = Math.round(player1.xVelocity / (HorizontalDrag / 2)) * (HorizontalDrag / 2)
-    if (player1.xVelocity > 0) player1.xVelocity -= (HorizontalDrag / 2)
-    if (player1.xVelocity < 0) player1.xVelocity += (HorizontalDrag / 2)
-  }
-    
-  
-  if (player2.yPos == windowheightRatio - minDistanceFromFloor) {
-    player2.xVelocity = Math.round(player2.xVelocity / HorizontalDrag) * HorizontalDrag
-    if (player2.xVelocity > 0) player2.xVelocity -= HorizontalDrag
-    if (player2.xVelocity < 0) player2.xVelocity += HorizontalDrag
-  }
-  else {
-    player2.xVelocity = Math.round(player2.xVelocity / (HorizontalDrag / 2)) * (HorizontalDrag / 2)
-    if (player2.xVelocity > 0) player2.xVelocity -= (HorizontalDrag / 2)
-    if (player2.xVelocity < 0) player2.xVelocity += (HorizontalDrag / 2)
-  }
-
-  //Handles Y-position
-  player1.yPos += player1.yVelocity
-  if (player1.yPos > windowheightRatio - minDistanceFromFloor) {
-    player1.yPos = windowheightRatio - minDistanceFromFloor
-    player1.yVelocityOnLastLand = player1.yVelocity
-    player1.yVelocity = 0
-    player1.bounceTimer = 4
-  }
-  if (player1.yPos < 0) {
-    player1.yPos = 0
-    player1.yVelocity = 0
-  }
-
-  player2.yPos += player2.yVelocity
-  if (player2.yPos > windowheightRatio - minDistanceFromFloor) {
-    player2.yPos = windowheightRatio - minDistanceFromFloor
-    player2.yVelocityOnLastLand = player2.yVelocity
-    player2.yVelocity = 0
-    player2.bounceTimer = 4
-  }
-  if (player2.yPos < 0) {
-    player2.yPos = 0
-    player2.yVelocity = 0
-  }
-
-  //Handles Y-velocity
-  player1.yVelocity = Math.round(player1.yVelocity / gravity) * gravity
-  if (player1.yPos < windowheightRatio - minDistanceFromFloor) player1.yVelocity = Math.min(player1.yVelocity + gravity, maxFallingSpeed)
-
-  player2.yVelocity = Math.round(player2.yVelocity / gravity) * gravity
-  if (player2.yPos < windowheightRatio - minDistanceFromFloor) player2.yVelocity = Math.min(player2.yVelocity + gravity, maxFallingSpeed)
-
-  //Handles damage
-  if (player1.xPos > (player2.xPos - 96) && player1.xPos < (player2.xPos + 96) && player1.yPos > (player2.yPos - 128) && player1.yPos < (player2.yPos - 128 + (player1.yVelocity - player2.yVelocity)) && player1.yVelocity > (player2.yVelocity + 4) && !player2.hitCooldown && player2.health > 0 && currentScreen == 3) {
-    player2.hitCooldown = 50
-    player1.yVelocity = player1.yVelocity * -0.7
-    player2.yVelocity = Math.max(player2.yVelocity, 5)
-    damagePlayer(2)
-    //Creates the pow effect
-    pow.style.left = (player2.xPos / 20) + "vw"
-    pow.style.top = (player2.yPos / 20) + "vw"
-    pow.style.backgroundImage = "url('img/9HitFx.gif')" //Supposed to restart the gif but it DOESN'T
-    pow.setAttribute("data-timeSpawned", timeSinceStart)
-    document.body.appendChild(pow.cloneNode(true))
-  }
-
-  if (player2.xPos > (player1.xPos - 96) && player2.xPos < (player1.xPos + 96) && player2.yPos > (player1.yPos - 128) && player2.yPos < (player1.yPos - 128 + (player2.yVelocity - player1.yVelocity)) && player2.yVelocity > (player1.yVelocity + 4) && !player1.hitCooldown && player1.health > 0 && currentScreen == 3) {
-    player1.hitCooldown = 50
-    player2.yVelocity = player2.yVelocity * -0.7
-    player1.yVelocity = Math.max(player1.yVelocity, 5)
-    damagePlayer(1)
-    //Creates the pow effect
-    pow.style.left = (player1.xPos / 20) + "vw"
-    pow.style.top = (player1.yPos / 20) + "vw"
-    pow.style.backgroundImage = "url('img/9HitFx.gif')" //Supposed to restart the gif but it DOESN'T
-    pow.setAttribute("data-timeSpawned", timeSinceStart)
-    document.body.appendChild(pow.cloneNode(true))
-  }
-
-  if (currentScreen == 3 || currentScreen == 5) {
-    //updates players' positions
-    document.getElementById("player1").style.left = (player1.xPos / 20) + "vw"
-    document.getElementById("player1").style.top = (player1.yPos / 20) + "vw"
-    document.getElementById("player2").style.left = (player2.xPos / 20) + "vw"
-    document.getElementById("player2").style.top = (player2.yPos / 20) + "vw"
-  
-    //Updates hit cooldown bars
-    document.getElementById("VSHitCooldown1").style.height = player1.hitCooldown + "px"
-    document.getElementById("VSHitCooldown2").style.height = player2.hitCooldown + "px"
-  
-    //Handles player images
-    if (player1.health == 0) {document.getElementById("player1").style.backgroundImage = "url('img/7OrangeDED.gif')"}
-    else if (player1.hitCooldown > 30) {document.getElementById("player1").style.backgroundImage = "url('img/6OrangeOuch.png')"}
-    else if (player1.yVelocity < -2) {document.getElementById("player1").style.backgroundImage = "url('img/4OrangeUp.png')"}
-    else if (player1.yVelocity > 2) {document.getElementById("player1").style.backgroundImage = "url('img/5OrangeDown.png')"}
-    else if (player1.xVelocity != 0) {document.getElementById("player1").style.backgroundImage = "url('img/1OrangeRun.gif')"}
-    else {document.getElementById("player1").style.backgroundImage = "url('img/0OrangeStand.gif')"}
-  
-    if (player2.health == 0) {document.getElementById("player2").style.backgroundImage = "url('img/7OrangeDED.gif')"}
-    else if (player2.hitCooldown > 30) {document.getElementById("player2").style.backgroundImage = "url('img/6OrangeOuch.png')"}
-    else if (player2.yVelocity < -2) {document.getElementById("player2").style.backgroundImage = "url('img/4OrangeUp.png')"}
-    else if (player2.yVelocity > 2) {document.getElementById("player2").style.backgroundImage = "url('img/5OrangeDown.png')"}
-    else if (player2.xVelocity != 0) {document.getElementById("player2").style.backgroundImage = "url('img/1OrangeRun.gif')"}
-    else {document.getElementById("player2").style.backgroundImage = "url('img/0OrangeStand.gif')"}
-  
-    //Handles afterimages
-    player1totalVelocity = (player1.xVelocity ** 2 + player1.yVelocity ** 2) ** 0.5
-    if (player1totalVelocity > minAfterImageSpeed) {
-      afterImage1.style.left = (player1.xPos / 20) + "vw"
-      afterImage1.style.top = (player1.yPos / 20) + "vw"
-      afterImage1.style.filter = "hue-rotate(" + characterHues[player1.dragonType] + "deg)"
-      afterImage1.style.transform = document.getElementById("player1").style.transform
-      afterImage1.setAttribute("data-timeSpawned", timeSinceStart)
-      if (player1.health == 0) {afterImage1.style.backgroundImage = "url('img/7OrangeDED.gif')"}
-    else if (player1.hitCooldown > 30) {afterImage1.style.backgroundImage = "url('img/6OrangeOuch.png')"}
-    else if (player1.yVelocity < -2) {afterImage1.style.backgroundImage = "url('img/4OrangeUp.png')"}
-    else if (player1.yVelocity > 2) {afterImage1.style.backgroundImage = "url('img/5OrangeDown.png')"}
-    else if (player1.xVelocity != 0) {afterImage1.style.backgroundImage = "url('img/1OrangeRun.gif')"}
-    else {afterImage1.style.backgroundImage = "url('img/0OrangeStand.gif')"}
-      document.body.appendChild(afterImage1.cloneNode(true))
-    }
-  
-    player2totalVelocity = (player2.xVelocity ** 2 + player2.yVelocity ** 2) ** 0.5
-    if (player2totalVelocity > minAfterImageSpeed) {
-      afterImage2.style.left = (player2.xPos / 20) + "vw"
-      afterImage2.style.top = (player2.yPos / 20) + "vw"
-      afterImage2.style.filter = "hue-rotate(" + characterHues[player2.dragonType] + "deg)"
-      afterImage2.style.transform = document.getElementById("player2").style.transform
-      afterImage2.setAttribute("data-timeSpawned", timeSinceStart)
-      if (player2.health == 0) {afterImage2.style.backgroundImage = "url('img/7OrangeDED.gif')"}
-      else if (player2.hitCooldown > 30) {afterImage2.style.backgroundImage = "url('img/6OrangeOuch.png')"}
-      else if (player2.yVelocity < -2) {afterImage2.style.backgroundImage = "url('img/4OrangeUp.png')"}
-      else if (player2.yVelocity > 2) {afterImage2.style.backgroundImage = "url('img/5OrangeDown.png')"}
-      else if (player2.xVelocity != 0) {afterImage2.style.backgroundImage = "url('img/1OrangeRun.gif')"}
-      else {afterImage2.style.backgroundImage = "url('img/0OrangeStand.gif')"}
-      document.body.appendChild(afterImage2.cloneNode(true))
-    }
-  
-    //Handles win state
-    if (player1.health == 0 || player2.health == 0) {
-      document.getElementById("winMessage").style.top = (Math.sin(timeSinceStart / 300) * 6 + 50) + "%"
-      document.getElementById("winMessageShadow").style.top = (Math.sin((timeSinceStart - 100) / 300) * 6 + 50) + "%"
-      document.getElementById("winMessageShadow2").style.top = (Math.sin((timeSinceStart - 200) / 300) * 6 + 50) + "%"
-      document.getElementById("winMessage2").style.top = "calc(" + (Math.sin((timeSinceStart - 50) / 300) * 6 + 50) + "% + 150px)"
-      if (player2.health == 0) {document.getElementById("winMessage2").style.backgroundImage = "url('img/Player1Wins.png')"}
-      else {document.getElementById("winMessage2").style.backgroundImage = "url('img/Player2Wins.png')"}
-    }
-    else {
-      document.getElementById("winMessage").style.top = "-100px"
-      document.getElementById("winMessageShadow").style.top = "-100px"
-      document.getElementById("winMessageShadow2").style.top = "-100px"
-      document.getElementById("winMessage2").style.top = "calc(100% + 180px)"
+function removeOldElements(className, lifespan) {
+  const elements = document.getElementsByClassName(className);
+  for (let i = 0; i < elements.length; i++) {
+    if (timeSinceStart > parseInt(elements[i].dataset.timespawned) + lifespan) {
+      elements[i].remove();
+      i--;
     }
   }
 }
 
-setInterval(update, 15)
-
-//Pressing the jump keys
-//Mousetrap.bind('up', function() {
-//  if (player1.yVelocity > 10 && player1.yPos > windowheightRatio - 128 - player1.yVelocity * 2) {player1.yVelocity = Math.max(player1.yVelocity * -1.3, -maxBounceHeight)}
-//  else if (player1.yPos < windowheightRatio - 128 && player1.xPos == window.innerWidth - 128) {player1.yVelocity = -jumpHeight; player1.xVelocity = -wallJumpSpeed}
-//  else if (player1.yPos < windowheightRatio - 128 && player1.xPos == 0) {player1.yVelocity = -jumpHeight; player1.xVelocity = wallJumpSpeed}
-//  else if (player1.yPos == windowheightRatio - 128) {player1.yVelocity = -jumpHeight}
-//});
-window.addEventListener("keydown", (event) => {
-  if (event.isComposing || event.keyCode === 87) {
-    if (!player1.jumped && player1.health > 0 && inRound) {
-      player1.jumped = true
-      //if (player1.yVelocity > 10 && player1.yPos > windowheightRatio - 128 - player1.yVelocity * 2) {player1.yVelocity = Math.max(player1.yVelocity * -1.3, -maxBounceHeight)}
-      if (player1.yPos == windowheightRatio - minDistanceFromFloor && player1.hitCooldown == 0 && player1.bounceTimer > 0) { //Bounce
-        player1.yVelocity = Math.max(player1.yVelocityOnLastLand * -1.3, -(maxBounceHeight * player1.statMultipliers[1]))
-        //Creates the bounce effect
-        jump.style.left = (player1.xPos / 20) + "vw"
-        jump.style.top = ((windowheightRatio - 160) / 20) + "vw"
-        jump.setAttribute("data-timeSpawned", timeSinceStart)
-        document.body.appendChild(jump.cloneNode(true))
-      } 
-      else if (player1.yPos < windowheightRatio - minDistanceFromFloor && player1.xPos == 2000 - minDistanceFromEdge) { //Right wall jump
-        document.getElementById("player1").style.transform = "scaleX(-1)"
-        if (player1.yVelocity < 10) {player1.yVelocity = -(jumpHeight * player1.statMultipliers[1]); player1.xVelocity = -wallJumpSpeed}
-        else {player1.xVelocity = -player1.yVelocity}
-      } 
-      else if (player1.yPos < windowheightRatio - minDistanceFromFloor && player1.xPos == minDistanceFromEdge - 192) { //Left wall jump
-        document.getElementById("player1").style.transform = null
-        if (player1.yVelocity < 10) {player1.yVelocity = -(jumpHeight * player1.statMultipliers[1]); player1.xVelocity = wallJumpSpeed}
-        else {player1.xVelocity = player1.yVelocity}
-      } 
-      else if (player1.yPos == windowheightRatio - minDistanceFromFloor) {player1.yVelocity = -(jumpHeight * player1.statMultipliers[1])} //Jump
+function handlePlayerMovement(player, leftKey, rightKey) {
+  if (player.keysPressed[leftKey] && player.health > 0 && inRound) {
+    document.getElementById(`player${player === player1 ? 1 : 2}`).style.transform = "scaleX(-1)";
+    if (player.xVelocity > (CONFIG.movementSpeed * player.statMultipliers[0]) * -5) {
+      player.xVelocity = player.xVelocity * 0.8 - (CONFIG.movementSpeed * player.statMultipliers[0]);
     }
   }
-  return
-});
-window.addEventListener("keyup", (event) => {
-  if (event.isComposing || event.keyCode === 87) {
-    player1.jumped = false
-  }
-  return
-});
-
-//Mousetrap.bind('w', function() {
-//  if (player2.yVelocity > 10 && player2.yPos > windowheightRatio - 128 - player2.yVelocity * 2) {player2.yVelocity = Math.max(player2.yVelocity * -1.3, -maxBounceHeight)}
-//  else if (player2.yPos < windowheightRatio - 128 && player2.xPos == window.innerWidth - 128) {player2.yVelocity = -jumpHeight; player2.xVelocity = -wallJumpSpeed}
-//  else if (player2.yPos < windowheightRatio - 128 && player2.xPos == 0) {player2.yVelocity = -jumpHeight; player2.xVelocity = wallJumpSpeed}
-//  else if (player2.yPos == windowheightRatio - 128) {player2.yVelocity = -jumpHeight}
-//});
-window.addEventListener("keydown", (event) => {
-  if (event.isComposing || event.keyCode === 73) {
-    if (!player2.jumped && player2.health > 0 && inRound && currentScreen == 3) {
-      player2.jumped = true
-      //if (player2.yVelocity > 10 && player2.yPos > windowheightRatio - 128 - player2.yVelocity * 2) {player2.yVelocity = Math.max(player2.yVelocity * -1.3, -maxBounceHeight)}
-      if (player2.yPos == windowheightRatio - minDistanceFromFloor && player2.hitCooldown == 0 && player2.bounceTimer > 0) { //Bounce
-        player2.yVelocity = Math.max(player2.yVelocityOnLastLand * -1.3, -(maxBounceHeight * player2.statMultipliers[1]))
-        //Creates the bounce effect
-        jump.style.left = (player2.xPos / 20) + "vw"
-        jump.style.top = ((windowheightRatio - 160) / 20) + "vw"
-        jump.setAttribute("data-timeSpawned", timeSinceStart)
-        document.body.appendChild(jump.cloneNode(true))
-      } 
-      else if (player2.yPos < windowheightRatio - minDistanceFromFloor && player2.xPos == 2000 - minDistanceFromEdge) { //Right wall jump
-        document.getElementById("player2").style.transform = "scaleX(-1)"
-        if (player2.yVelocity < 10) {player2.yVelocity = -(jumpHeight * player2.statMultipliers[1]); player2.xVelocity = -wallJumpSpeed}
-        else {player2.xVelocity = -player2.yVelocity}
-      } 
-      else if (player2.yPos < windowheightRatio - minDistanceFromFloor && player2.xPos == minDistanceFromEdge - 192) { //Left wall jump
-        document.getElementById("player2").style.transform = null
-        if (player2.yVelocity < 10) {player2.yVelocity = -(jumpHeight * player2.statMultipliers[1]); player2.xVelocity = wallJumpSpeed}
-        else {player2.xVelocity = player2.yVelocity}
-      } 
-      else if (player2.yPos == windowheightRatio - minDistanceFromFloor) {player2.yVelocity = -(jumpHeight * player2.statMultipliers[1])} //Jump
+  if (player.keysPressed[rightKey] && player.health > 0 && inRound) {
+    document.getElementById(`player${player === player1 ? 1 : 2}`).style.transform = null;
+    if (player.xVelocity < (CONFIG.movementSpeed * player.statMultipliers[0]) * 5) {
+      player.xVelocity = player.xVelocity * 0.8 + (CONFIG.movementSpeed * player.statMultipliers[0]);
     }
   }
-  return
-});
-window.addEventListener("keyup", (event) => {
-  if (event.isComposing || event.keyCode === 73) {
-    player2.jumped = false
+}
+
+function updateCooldowns(player) {
+  if (player.hitCooldown > 0) player.hitCooldown--;
+  if (player.dashCooldown > 0) player.dashCooldown--;
+  if (player.bounceTimer > 0) player.bounceTimer--;
+}
+
+function updatePlayerPosition(player) {
+  player.xPos += player.xVelocity;
+  if (currentScreen === SCREENS.CAMPAIGN_MODE_GAMEPLAY && inRound) player.xPos -= levelScrollSpeed;
+  if (currentScreen === SCREENS.VS_MODE_GAMEPLAY && player.xPos > 2000 - CONFIG.minDistanceFromEdge) {
+    player.xPos = 2000 - CONFIG.minDistanceFromEdge;
+    player.xVelocity = 0;
   }
-  return
+  if (currentScreen === SCREENS.VS_MODE_GAMEPLAY && player.xPos < CONFIG.minDistanceFromEdge - 192) {
+    player.xPos = CONFIG.minDistanceFromEdge - 192;
+    player.xVelocity = 0;
+  }
+
+  player.yPos += player.yVelocity;
+  if (player.yPos > windowheightRatio - CONFIG.minDistanceFromFloor) {
+    player.yPos = windowheightRatio - CONFIG.minDistanceFromFloor;
+    player.yVelocityOnLastLand = player.yVelocity;
+    player.yVelocity = 0;
+    player.bounceTimer = 4;
+  }
+  if (player.yPos < 0) {
+    player.yPos = 0;
+    player.yVelocity = 0;
+  }
+
+  player.yVelocity = Math.round(player.yVelocity / CONFIG.gravity) * CONFIG.gravity;
+  if (player.yPos < windowheightRatio - CONFIG.minDistanceFromFloor) {
+    player.yVelocity = Math.min(player.yVelocity + CONFIG.gravity, CONFIG.maxFallingSpeed);
+  }
+
+  if (player.yPos === windowheightRatio - CONFIG.minDistanceFromFloor) {
+    player.xVelocity = Math.round(player.xVelocity / CONFIG.horizontalDrag) * CONFIG.horizontalDrag;
+    if (player.xVelocity > 0) player.xVelocity -= CONFIG.horizontalDrag;
+    if (player.xVelocity < 0) player.xVelocity += CONFIG.horizontalDrag;
+  } else {
+    player.xVelocity = Math.round(player.xVelocity / (CONFIG.horizontalDrag / 2)) * (CONFIG.horizontalDrag / 2);
+    if (player.xVelocity > 0) player.xVelocity -= (CONFIG.horizontalDrag / 2);
+    if (player.xVelocity < 0) player.xVelocity += (CONFIG.horizontalDrag / 2);
+  }
+}
+
+function handlePlayerDamage(player, opponent) {
+  if (player.xPos > (opponent.xPos - 96) && player.xPos < (opponent.xPos + 96) &&
+    player.yPos > (opponent.yPos - 128) && player.yPos < (opponent.yPos - 128 + (player.yVelocity - opponent.yVelocity)) &&
+    player.yVelocity > (opponent.yVelocity + 4) && !opponent.hitCooldown && opponent.health > 0 && currentScreen === SCREENS.VS_MODE_GAMEPLAY) {
+    opponent.hitCooldown = 50;
+    player.yVelocity = player.yVelocity * -0.7;
+    opponent.yVelocity = Math.max(opponent.yVelocity, 5);
+    damagePlayer(opponent === player1 ? 1 : 2);
+    createPowEffect(opponent);
+  }
+}
+
+function createPowEffect(player) {
+  const pow = ELEMENTS.pow.cloneNode(true);
+  pow.style.left = `${player.xPos / 20}vw`;
+  pow.style.top = `${player.yPos / 20}vw`;
+  pow.setAttribute("data-timeSpawned", timeSinceStart);
+  document.body.appendChild(pow);
+}
+
+function updatePlayerElements(player, playerNumber) {
+  const playerElement = document.getElementById(`player${playerNumber}`);
+  playerElement.style.left = `${player.xPos / 20}vw`;
+  playerElement.style.top = `${player.yPos / 20}vw`;
+
+  document.getElementById(`VSHitCooldown${playerNumber}`).style.height = `${player.hitCooldown}px`;
+
+  if (player.health === 0) {
+    playerElement.style.backgroundImage = "url('img/7OrangeDED.gif')";
+  } else if (player.hitCooldown > 30) {
+    playerElement.style.backgroundImage = "url('img/6OrangeOuch.png')";
+  } else if (player.yVelocity < -2) {
+    playerElement.style.backgroundImage = "url('img/4OrangeUp.png')";
+  } else if (player.yVelocity > 2) {
+    playerElement.style.backgroundImage = "url('img/5OrangeDown.png')";
+  } else if (player.xVelocity !== 0) {
+    playerElement.style.backgroundImage = "url('img/1OrangeRun.gif')";
+  } else {
+    playerElement.style.backgroundImage = "url('img/0OrangeStand.gif')";
+  }
+
+  const totalVelocity = Math.sqrt(player.xVelocity ** 2 + player.yVelocity ** 2);
+  if (totalVelocity > CONFIG.minAfterImageSpeed) {
+    createAfterImage(player, playerNumber);
+  }
+}
+
+function createAfterImage(player, playerNumber) {
+  const afterImage = ELEMENTS[`afterImage${playerNumber}`].cloneNode(true);
+  afterImage.style.left = `${player.xPos / 20}vw`;
+  afterImage.style.top = `${player.yPos / 20}vw`;
+  afterImage.style.filter = `hue-rotate(${CONFIG.characterHues[player.dragonType]}deg)`;
+  afterImage.style.transform = document.getElementById(`player${playerNumber}`).style.transform;
+  afterImage.setAttribute("data-timeSpawned", timeSinceStart);
+  afterImage.style.backgroundImage = document.getElementById(`player${playerNumber}`).style.backgroundImage;
+  document.body.appendChild(afterImage);
+}
+
+function updateWinState() {
+  if (player1.health === 0 || player2.health === 0) {
+    document.getElementById("winMessage").style.top = `${Math.sin(timeSinceStart / 300) * 6 + 50}%`;
+    document.getElementById("winMessageShadow").style.top = `${Math.sin((timeSinceStart - 100) / 300) * 6 + 50}%`;
+    document.getElementById("winMessageShadow2").style.top = `${Math.sin((timeSinceStart - 200) / 300) * 6 + 50}%`;
+    document.getElementById("winMessage2").style.top = `calc(${Math.sin((timeSinceStart - 50) / 300) * 6 + 50}% + 150px)`;
+    document.getElementById("winMessage2").style.backgroundImage = player2.health === 0 ? "url('img/Player1Wins.png')" : "url('img/Player2Wins.png')";
+  } else {
+    document.getElementById("winMessage").style.top = "-100px";
+    document.getElementById("winMessageShadow").style.top = "-100px";
+    document.getElementById("winMessageShadow2").style.top = "-100px";
+    document.getElementById("winMessage2").style.top = "calc(100% + 180px)";
+  }
+}
+
+setInterval(update, 15);
+
+window.addEventListener("keydown", (event) => {
+  if (event.isComposing || event.keyCode === 87) {
+    handleJump(player1);
+  }
+  return;
 });
 
-//Dashing
+window.addEventListener("keyup", (event) => {
+  if (event.isComposing || event.keyCode === 87) {
+    player1.jumped = false;
+  }
+  return;
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.isComposing || event.keyCode === 73) {
+    handleJump(player2);
+  }
+  return;
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.isComposing || event.keyCode === 73) {
+    player2.jumped = false;
+  }
+  return;
+});
+
+function handleJump(player) {
+  if (!player.jumped && player.health > 0 && inRound && (player === player1 || currentScreen === SCREENS.VS_MODE_GAMEPLAY)) {
+    player.jumped = true;
+    if (player.yPos === windowheightRatio - CONFIG.minDistanceFromFloor && player.hitCooldown === 0 && player.bounceTimer > 0) {
+      player.yVelocity = Math.max(player.yVelocityOnLastLand * -1.3, -(CONFIG.maxBounceHeight * player.statMultipliers[1]));
+      createJumpEffect(player);
+    } else if (player.yPos < windowheightRatio - CONFIG.minDistanceFromFloor && player.xPos === 2000 - CONFIG.minDistanceFromEdge) {
+      document.getElementById(`player${player === player1 ? 1 : 2}`).style.transform = "scaleX(-1)";
+      if (player.yVelocity < 10) {
+        player.yVelocity = -(CONFIG.jumpHeight * player.statMultipliers[1]);
+        player.xVelocity = -CONFIG.wallJumpSpeed;
+      } else {
+        player.xVelocity = -player.yVelocity;
+      }
+    } else if (player.yPos < windowheightRatio - CONFIG.minDistanceFromFloor && player.xPos === CONFIG.minDistanceFromEdge - 192) {
+      document.getElementById(`player${player === player1 ? 1 : 2}`).style.transform = null;
+      if (player.yVelocity < 10) {
+        player.yVelocity = -(CONFIG.jumpHeight * player.statMultipliers[1]);
+        player.xVelocity = CONFIG.wallJumpSpeed;
+      } else {
+        player.xVelocity = player.yVelocity;
+      }
+    } else if (player.yPos === windowheightRatio - CONFIG.minDistanceFromFloor) {
+      player.yVelocity = -(CONFIG.jumpHeight * player.statMultipliers[1]);
+    }
+  }
+}
+
+function createJumpEffect(player) {
+  const jump = ELEMENTS.jump.cloneNode(true);
+  jump.style.left = `${player.xPos / 20}vw`;
+  jump.style.top = `${(windowheightRatio - CONFIG.minDistanceFromFloor) / 20}vw`;
+  jump.setAttribute("data-timeSpawned", timeSinceStart);
+  document.body.appendChild(jump);
+}
+
 window.addEventListener("keydown", (event) => {
   if (event.isComposing || event.keyCode === 16) {
-    if (!player1.jumped && player1.dashCooldown == 0 && player1.health > 0 && inRound) {
-      player1.yVelocity = 0
-      if (document.getElementById("player1").style.transform == "scaleX(-1)") {player1.xVelocity = -35}
-      else {player1.xVelocity = 35}
-      player1.dashCooldown = 50
-    }
+    handleDash(player1);
   }
-  return
+  return;
 });
+
 window.addEventListener("keydown", (event) => {
   if (event.isComposing || event.keyCode === 66) {
-    if (!player2.jumped && player2.dashCooldown == 0 && player2.health > 0 && inRound && currentScreen == 3) {
-      player2.yVelocity = 0
-      if (document.getElementById("player2").style.transform == "scaleX(-1)") {player2.xVelocity = -35}
-      else {player2.xVelocity = 35}
-      player2.dashCooldown = 50
-    }
+    handleDash(player2);
   }
-  return
+  return;
 });
+
+function handleDash(player) {
+  if (!player.jumped && player.dashCooldown === 0 && player.health > 0 && inRound && (player === player1 || currentScreen === SCREENS.VS_MODE_GAMEPLAY)) {
+    player.yVelocity = 0;
+    player.xVelocity = document.getElementById(`player${player === player1 ? 1 : 2}`).style.transform === "scaleX(-1)" ? -35 : 35;
+    player.dashCooldown = 50;
+  }
+}
 
 window.addEventListener("keydown", (event) => {
-  player1.keysPressed[event.keyCode] = true
-  player2.keysPressed[event.keyCode] = true
+  player1.keysPressed[event.keyCode] = true;
+  player2.keysPressed[event.keyCode] = true;
 });
+
 window.addEventListener("keyup", (event) => {
-  player1.keysPressed[event.keyCode] = false
-  player2.keysPressed[event.keyCode] = false
+  player1.keysPressed[event.keyCode] = false;
+  player2.keysPressed[event.keyCode] = false;
 });
 
-
-function damagePlayer(x) {
-  if (x==1) {
-    player1.health = Math.max(player1.health - Math.abs(player2.yVelocity - player1.yVelocity) * player2.statMultipliers[2] / 2, 0)
-    document.getElementById("VSHealthBar1").style.width = (player1.health / 2.5) + "%"
-  }
-  else {
-    player2.health = Math.max(player2.health - Math.abs(player1.yVelocity - player2.yVelocity) * player1.statMultipliers[2] / 2, 0)
-    document.getElementById("VSHealthBar2").style.width = (player2.health / 2.5) + "%"
-  }
-  if ((player1.health == 0 || player2.health == 0) && !roundFinished) {
-    roundFinished = true
-    if (versusRound == 3) {setTimeout(endMatch, 3000)}
-    else {setTimeout(function() {versusRound = Math.min(versusRound + 1, 3); startRound()}, 3000)}
+function damagePlayer(playerNumber) {
+  const player = playerNumber === 1 ? player1 : player2;
+  const opponent = playerNumber === 1 ? player2 : player1;
+  player.health = Math.max(player.health - Math.abs(opponent.yVelocity - player.yVelocity) * opponent.statMultipliers[2] / 2, 0);
+  document.getElementById(`VSHealthBar${playerNumber}`).style.width = `${player.health / 2.5}%`;
+  if ((player1.health === 0 || player2.health === 0) && !roundFinished) {
+    roundFinished = true;
+    if (versusRound === 3) {
+      setTimeout(endMatch, 3000);
+    } else {
+      setTimeout(() => {
+        versusRound = Math.min(versusRound + 1, 3);
+        startRound();
+      }, 3000);
+    }
   }
 }
