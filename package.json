@@ -1,0 +1,16 @@
+{
+  "name": "Dodecabrawlin-Remake",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.8.0",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4"
+  }
+}
