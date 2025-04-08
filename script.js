@@ -1045,8 +1045,8 @@ window.addEventListener("keydown", (event) => {
 	return;
 });
 window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 77) {
-		// Changed from b (66) to m (77) for dash
+	if (event.isComposing || event.keyCode === 13) { // Changed from m (77) to enter (13)
+		// Changed from m (77) to enter (13) for dash
 		if (
 			!player2.jumped &&
 			player2.dashCooldown === 0 &&
