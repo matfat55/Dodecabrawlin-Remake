@@ -6,7 +6,7 @@
 	"scripts": {
 		"lint": "biome lint ./",
 		"format": "biome format --write ./",
-		"check": "biome check --apply ./"
+		"check": "biome check --write ./"
 	},
 	"keywords": ["game", "javascript", "html", "css"],
 	"author": "",

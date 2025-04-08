@@ -960,7 +960,8 @@ window.addEventListener("keyup", (event) => {
 //  else if (player2.yPos == windowheightRatio - 128) {player2.yVelocity = -jumpHeight}
 //});
 window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 80) { // Changed from i (73) to p (80) for jump
+	if (event.isComposing || event.keyCode === 80) {
+		// Changed from i (73) to p (80) for jump
 		if (
 			!player2.jumped &&
 			player2.health > 0 &&
@@ -1016,7 +1017,8 @@ window.addEventListener("keydown", (event) => {
 	return;
 });
 window.addEventListener("keyup", (event) => {
-	if (event.isComposing || event.keyCode === 80) { // Changed from i (73) to p (80) for jump keyup
+	if (event.isComposing || event.keyCode === 80) {
+		// Changed from i (73) to p (80) for jump keyup
 		player2.jumped = false;
 	}
 	return;
@@ -1043,7 +1045,8 @@ window.addEventListener("keydown", (event) => {
 	return;
 });
 window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 77) { // Changed from b (66) to m (77) for dash
+	if (event.isComposing || event.keyCode === 77) {
+		// Changed from b (66) to m (77) for dash
 		if (
 			!player2.jumped &&
 			player2.dashCooldown === 0 &&
