@@ -1033,8 +1033,8 @@ window.addEventListener("keydown", (event) => {
 	return;
 });
 window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 13) { // Changed from m (77) to enter (13)
-		// Changed from m (77) to enter (13) for dash
+	if (event.isComposing || event.keyCode === 13) { // Use Enter key (keyCode 13) for dash
+		// Player 2 Dash action
 		if (
 			!player2.jumped &&
 			player2.dashCooldown === 0 &&
