@@ -718,12 +718,24 @@ function update() {
 
 	//Handles Y-velocity
 	player1.yVelocity = Math.round(player1.yVelocity / gravity) * gravity;
-	if (player1.yPos < windowheightRatio - minDistanceFromFloor)
+	if (player1.yPos < windowheightRatio - minDistanceFromFloor) {
+		// Apply gravity
 		player1.yVelocity = Math.min(player1.yVelocity + gravity, maxFallingSpeed);
+		// Apply fast fall if key is pressed
+		if (player1.keysPressed[83] && player1.health > 0 && inRound) { // 's' key for P1 fast fall
+			player1.yVelocity = Math.min(player1.yVelocity + gravity * 1.5, maxFallingSpeed);
+		}
+	}
 
 	player2.yVelocity = Math.round(player2.yVelocity / gravity) * gravity;
-	if (player2.yPos < windowheightRatio - minDistanceFromFloor)
+	if (player2.yPos < windowheightRatio - minDistanceFromFloor) {
+		// Apply gravity
 		player2.yVelocity = Math.min(player2.yVelocity + gravity, maxFallingSpeed);
+		// Apply fast fall if key is pressed
+		if (player2.keysPressed[186] && player2.health > 0 && inRound && currentScreen === 3) { // ';' key for P2 fast fall
+			player2.yVelocity = Math.min(player2.yVelocity + gravity * 1.5, maxFallingSpeed);
+		}
+	}
 
 	//Handles damage
 	if (
