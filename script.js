@@ -889,12 +889,6 @@ function update() {
 setInterval(update, 15);
 
 //Pressing the jump keys
-//Mousetrap.bind('up', function() {
-//  if (player1.yVelocity > 10 && player1.yPos > windowheightRatio - 128 - player1.yVelocity * 2) {player1.yVelocity = Math.max(player1.yVelocity * -1.3, -maxBounceHeight)}
-//  else if (player1.yPos < windowheightRatio - 128 && player1.xPos == window.innerWidth - 128) {player1.yVelocity = -jumpHeight; player1.xVelocity = -wallJumpSpeed}
-//  else if (player1.yPos < windowheightRatio - 128 && player1.xPos == 0) {player1.yVelocity = -jumpHeight; player1.xVelocity = wallJumpSpeed}
-//  else if (player1.yPos == windowheightRatio - 128) {player1.yVelocity = -jumpHeight}
-//});
 window.addEventListener("keydown", (event) => {
 	if (event.isComposing || event.keyCode === 87) {
 		if (!player1.jumped && player1.health > 0 && inRound) {
@@ -953,12 +947,6 @@ window.addEventListener("keyup", (event) => {
 	return;
 });
 
-//Mousetrap.bind('w', function() {
-//  if (player2.yVelocity > 10 && player2.yPos > windowheightRatio - 128 - player2.yVelocity * 2) {player2.yVelocity = Math.max(player2.yVelocity * -1.3, -maxBounceHeight)}
-//  else if (player2.yPos < windowheightRatio - 128 && player2.xPos == window.innerWidth - 128) {player2.yVelocity = -jumpHeight; player2.xVelocity = -wallJumpSpeed}
-//  else if (player2.yPos < windowheightRatio - 128 && player2.xPos == 0) {player2.yVelocity = -jumpHeight; player2.xVelocity = wallJumpSpeed}
-//  else if (player2.yPos == windowheightRatio - 128) {player2.yVelocity = -jumpHeight}
-//});
 window.addEventListener("keydown", (event) => {
 	if (event.isComposing || event.keyCode === 80) {
 		// Changed from i (73) to p (80) for jump
