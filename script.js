@@ -17,6 +17,7 @@ const statMultipliersList = [
 	[1.4, 1.2, 0.8],
 	[1.16, 1.4, 0.95],
 	[1.08, 1.3, 1.25],
+	[1.5, 1.75, 5.0], // Secret Character (Type 4) - Powerful stats
 ]; //Stats are (1 + top speed stat * 0.08), (1 + jump height stat * 0.1), (0.65 + damage stat * 0.15)
 
 //hidden stats for each character
@@ -29,6 +30,8 @@ const hiddenStatsList = [
 	{ bounceMultiplier: 1.4, dashDistance: 35, dashCooldown: 55 },
 	// DragonType 3
 	{ bounceMultiplier: 1.3, dashDistance: 32, dashCooldown: 60 },
+	// Secret Character (Type 4)
+	{ bounceMultiplier: 1.5, dashDistance: 60, dashCooldown: 10 },
 ];
 
 //Variables
@@ -181,7 +184,9 @@ function updateStats(x = 1, y = 0) {
 		document.getElementsByClassName("character2StatBar")[1].style.width = "0%";
 		document.getElementsByClassName("character2StatBar")[2].style.width = "0%";
 	} else if (x === 1) {
-		switch (y) {
+		let displayType = y;
+		if (y === 4) displayType = 0; // Show stats for type 0 if secret character selected
+		switch (displayType) {
 			case 0:
 				document.getElementsByClassName("character1StatBar")[0].style.width =
 					"60%";
@@ -216,7 +221,9 @@ function updateStats(x = 1, y = 0) {
 				break;
 		}
 	} else if (x === 2) {
-		switch (y) {
+		let displayType = y;
+		if (y === 4) displayType = 0; // Show stats for type 0 if secret character selected
+		switch (displayType) {
 			case 0:
 				document.getElementsByClassName("character2StatBar")[0].style.width =
 					"60%";
@@ -307,11 +314,11 @@ function startMatch() {
 	player2.hiddenStats = hiddenStatsList[player2.dragonType];
 	document.getElementById("player2").style.display = "block";
 	document.getElementById("player1").style.filter =
-		`hue-rotate(${characterHues[player1.dragonType]}deg)`;
+		`hue-rotate(${characterHues[player1.dragonType === 4 ? 0 : player1.dragonType]}deg)`;
 	document.getElementById("VSHealthBar1").style.filter =
 		`hue-rotate(${characterHues[player1.dragonType]}deg)`;
 	document.getElementById("player2").style.filter =
-		`hue-rotate(${characterHues[player2.dragonType]}deg)`;
+		`hue-rotate(${characterHues[player2.dragonType === 4 ? 0 : player2.dragonType]}deg)`;
 	document.getElementById("VSHealthBar2").style.filter =
 		`hue-rotate(${characterHues[player2.dragonType]}deg)`;
 	document.getElementById("transitionCover1").style.top = "0%";
@@ -844,7 +851,7 @@ function update() {
 		if (player1totalVelocity > minAfterImageSpeed) {
 			afterImage1.style.left = `${player1.xPos / 20}vw`;
 			afterImage1.style.top = `${player1.yPos / 20}vw`;
-			afterImage1.style.filter = `hue-rotate(${characterHues[player1.dragonType]}deg)`;
+			afterImage1.style.filter = `hue-rotate(${characterHues[player1.dragonType === 4 ? 0 : player1.dragonType]}deg)`;
 			afterImage1.style.transform =
 				document.getElementById("player1").style.transform;
 			afterImage1.setAttribute("data-timeSpawned", timeSinceStart);
@@ -869,7 +876,7 @@ function update() {
 		if (player2totalVelocity > minAfterImageSpeed) {
 			afterImage2.style.left = `${player2.xPos / 20}vw`;
 			afterImage2.style.top = `${player2.yPos / 20}vw`;
-			afterImage2.style.filter = `hue-rotate(${characterHues[player2.dragonType]}deg)`;
+			afterImage2.style.filter = `hue-rotate(${characterHues[player2.dragonType === 4 ? 0 : player2.dragonType]}deg)`;
 			afterImage2.style.transform =
 				document.getElementById("player2").style.transform;
 			afterImage2.setAttribute("data-timeSpawned", timeSinceStart);
@@ -1126,3 +1133,22 @@ function damagePlayer(x) {
 		}
 	}
 }
+
+// Listener for secret character selection
+window.addEventListener("keydown", (event) => {
+	if (currentScreen === 2) { // Only on character select screen
+		if (event.keyCode === 49) { // '1' key
+			player1.dragonType = 4; // Assign secret character to P1
+			console.log("Player 1 selected secret character");
+			updateStats(1, player1.dragonType); // Update displayed stats (will show type 0)
+			document.getElementById("selectedCharacter1").style.filter =
+				`hue-rotate(${characterHues[0]}deg)`; // Ensure visual matches type 0
+		} else if (event.keyCode === 50) { // '2' key
+			player2.dragonType = 4; // Assign secret character to P2
+			console.log("Player 2 selected secret character");
+			updateStats(2, player2.dragonType); // Update displayed stats (will show type 0)
+			document.getElementById("selectedCharacter2").style.filter =
+				`hue-rotate(${characterHues[0]}deg)`; // Ensure visual matches type 0
+		}
+	}
+});
