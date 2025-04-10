@@ -19,6 +19,18 @@ const statMultipliersList = [
 	[1.08, 1.3, 1.25],
 ]; //Stats are (1 + top speed stat * 0.08), (1 + jump height stat * 0.1), (0.65 + damage stat * 0.15)
 
+//hidden stats for each character
+const hiddenStatsList = [
+	// DragonType 0 
+	{ bounceMultiplier: 1.35, dashDistance: 35, dashCooldown: 50 },
+	// DragonType 1 
+	{ bounceMultiplier: 1.2, dashDistance: 40, dashCooldown: 40 },
+	// DragonType 2 
+	{ bounceMultiplier: 1.4, dashDistance: 35, dashCooldown: 55 },
+	// DragonType 3
+	{ bounceMultiplier: 1.3, dashDistance: 32, dashCooldown: 60 },
+];
+
 //Variables
 let currentScreen = 1; //1 = Main title screen, 2 = Character select screen (Vs. Mode), 3 = Vs. mode gameplay, 4 = Campaign level select screen, 5 = Campaign mode gameplay
 let timeSinceStart = 0;
@@ -36,8 +48,9 @@ player1 = {
 	dragonType: 0,
 	health: 100,
 	statMultipliers: [1, 1, 1], //Top speed, jump height, damage
+	hiddenStats: {}, // bounceMultiplier, dashDistance, dashCooldown
 	hitCooldown: 0,
-	dashCooldown: 0,
+	currentDashCooldown: 0,
 	bounceTimer: 0,
 	xPos: (2000 - minDistanceFromEdge) * (1 / 3),
 	yPos: windowheightRatio - minDistanceFromFloor,
@@ -52,8 +65,9 @@ player2 = {
 	dragonType: 0,
 	health: 100,
 	statMultipliers: [1, 1, 1], //Top speed, jump height, damage
+	hiddenStats: {}, // bounceMultiplier, dashDistance, dashCooldown
 	hitCooldown: 0,
-	dashCooldown: 0,
+	currentDashCooldown: 0,
 	bounceTimer: 0,
 	xPos: (2000 - minDistanceFromEdge) * (2 / 3),
 	yPos: windowheightRatio - minDistanceFromFloor,
@@ -249,6 +263,7 @@ function startLevel() {
 		});
 	document.getElementById("levelNameMessage").style.opacity = "1";
 	player1.statMultipliers = statMultipliersList[player1.dragonType];
+	player1.hiddenStats = hiddenStatsList[player1.dragonType];
 	levelScrollSpeed = 4;
 	document.getElementById("player2").style.display = "none";
 	document.getElementById("transitionCover1").style.top = "0%";
@@ -287,7 +302,9 @@ function renderLevelName(x) {
 function startMatch() {
 	versusRound = 1;
 	player1.statMultipliers = statMultipliersList[player1.dragonType];
+	player1.hiddenStats = hiddenStatsList[player1.dragonType];
 	player2.statMultipliers = statMultipliersList[player2.dragonType];
+	player2.hiddenStats = hiddenStatsList[player2.dragonType];
 	document.getElementById("player2").style.display = "block";
 	document.getElementById("player1").style.filter =
 		`hue-rotate(${characterHues[player1.dragonType]}deg)`;
@@ -618,8 +635,8 @@ function update() {
 	if (player2.hitCooldown > 0) player2.hitCooldown--;
 
 	//Detects dash cooldowns
-	if (player1.dashCooldown > 0) player1.dashCooldown--;
-	if (player2.dashCooldown > 0) player2.dashCooldown--;
+	if (player1.currentDashCooldown > 0) player1.currentDashCooldown--;
+	if (player2.currentDashCooldown > 0) player2.currentDashCooldown--;
 
 	//Detects bounce timers
 	if (player1.bounceTimer > 0) player1.bounceTimer--;
@@ -901,7 +918,7 @@ window.addEventListener("keydown", (event) => {
 			) {
 				//Bounce
 				player1.yVelocity = Math.max(
-					player1.yVelocityOnLastLand * -1.3,
+					player1.yVelocityOnLastLand * -player1.hiddenStats.bounceMultiplier,
 					-(maxBounceHeight * player1.statMultipliers[1]),
 				);
 				//Creates the bounce effect
@@ -965,7 +982,7 @@ window.addEventListener("keydown", (event) => {
 			) {
 				//Bounce
 				player2.yVelocity = Math.max(
-					player2.yVelocityOnLastLand * -1.3,
+					player2.yVelocityOnLastLand * -player2.hiddenStats.bounceMultiplier,
 					-(maxBounceHeight * player2.statMultipliers[1]),
 				);
 				//Creates the bounce effect
@@ -1017,17 +1034,17 @@ window.addEventListener("keydown", (event) => {
 	if (event.isComposing || event.keyCode === 16) {
 		if (
 			!player1.jumped &&
-			player1.dashCooldown === 0 &&
+			player1.currentDashCooldown === 0 &&
 			player1.health > 0 &&
 			inRound
 		) {
 			player1.yVelocity = 0;
 			if (document.getElementById("player1").style.transform === "scaleX(-1)") {
-				player1.xVelocity = -35;
+				player1.xVelocity = -player1.hiddenStats.dashDistance;
 			} else {
-				player1.xVelocity = 35;
+				player1.xVelocity = player1.hiddenStats.dashDistance;
 			}
-			player1.dashCooldown = 50;
+			player1.currentDashCooldown = player1.hiddenStats.dashCooldown;
 		}
 	}
 	return;
@@ -1037,18 +1054,18 @@ window.addEventListener("keydown", (event) => {
 		// Player 2 Dash action
 		if (
 			!player2.jumped &&
-			player2.dashCooldown === 0 &&
+			player2.currentDashCooldown === 0 &&
 			player2.health > 0 &&
 			inRound &&
 			currentScreen === 3
 		) {
 			player2.yVelocity = 0;
 			if (document.getElementById("player2").style.transform === "scaleX(-1)") {
-				player2.xVelocity = -35;
+				player2.xVelocity = -player2.hiddenStats.dashDistance;
 			} else {
-				player2.xVelocity = 35;
+				player2.xVelocity = player2.hiddenStats.dashDistance;
 			}
-			player2.dashCooldown = 50;
+			player2.currentDashCooldown = player2.hiddenStats.dashCooldown;
 		}
 	}
 	return;
