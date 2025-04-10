@@ -680,7 +680,7 @@ function update() {
 		player1.yPos = windowheightRatio - minDistanceFromFloor;
 		player1.yVelocityOnLastLand = player1.yVelocity;
 		player1.yVelocity = 0;
-		player1.bounceTimer = 4;
+		player1.bounceTimer = 6;
 	}
 	if (player1.yPos < 0) {
 		player1.yPos = 0;
@@ -692,7 +692,7 @@ function update() {
 		player2.yPos = windowheightRatio - minDistanceFromFloor;
 		player2.yVelocityOnLastLand = player2.yVelocity;
 		player2.yVelocity = 0;
-		player2.bounceTimer = 4;
+		player2.bounceTimer = 6; 
 	}
 	if (player2.yPos < 0) {
 		player2.yPos = 0;
