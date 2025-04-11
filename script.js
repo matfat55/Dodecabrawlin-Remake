@@ -43,6 +43,24 @@ let roundFinished = false;
 let levelScrollSpeed = 0;
 let backgroundPosition = 0;
 
+// Define control schemes
+const CONTROLS = {
+	player1: {
+		left: 65,      // A
+		right: 68,     // D
+		jump: 87,      // W
+		dash: 16,      // Shift
+		fastFall: 83   // S
+	},
+	player2: {
+		left: 76,      // L
+		right: 222,    // '
+		jump: 80,      // P
+		dash: 13,      // Enter
+		fastFall: 186  // ;
+	}
+};
+
 campaignStats = {
 	level: 1,
 };
@@ -60,8 +78,9 @@ player1 = {
 	xVelocity: 0,
 	yVelocity: 0,
 	yVelocityOnLastLand: 0,
-	keysPressed: [],
+	keysPressed: {},
 	jumped: false,
+	previousKeys: {}
 };
 
 player2 = {
@@ -77,8 +96,9 @@ player2 = {
 	xVelocity: 0,
 	yVelocity: 0,
 	yVelocityOnLastLand: 0,
-	keysPressed: [],
+	keysPressed: {},
 	jumped: false,
+	previousKeys: {}
 };
 
 //Gets the level data from levelData.json
@@ -420,8 +440,26 @@ document.getElementById("menuButton2Back").style.top = "60%";
 document.getElementById("menuButton3Back").style.left = "50%";
 document.getElementById("menuButton3Back").style.top = "78%";
 
-function update() {
+// Get the most recently pressed key from a list of key codes
+function prioritizeRecentKey(keyCodes) {
+	// Filter keyPressOrder to only include specified keys that are currently pressed
+	const relevantKeys = keyPressOrder.filter(item => 
+		keyCodes.includes(item.key) && keysCurrentlyPressed[item.key])
+		.sort((a, b) => b.time - a.time); // Sort by most recent
+
+	// Return the most recently pressed key, or null if none are pressed
+	return relevantKeys.length > 0 ? relevantKeys[0].key : null;
+}
+
+// Time multiplier to keep game speed consistent regardless of frame rate
+let deltaTimeMultiplier = 1;
+
+function update(deltaTime = 16.67) {
+	// Calculate the time multiplier based on frame time
+	deltaTimeMultiplier = deltaTime / 16.67; // 16.67ms is ~60fps
+	
 	windowheightRatio = (2000 / window.innerWidth) * window.innerHeight;
+	// Use fixed time increment for game logic
 	timeSinceStart += 15;
 
 	//Title screen stuff
@@ -600,41 +638,73 @@ function update() {
 		}
 	}
 
-	//Detects key presses
-	if (player1.keysPressed[65] && player1.health > 0 && inRound) {
-		document.getElementById("player1").style.transform = "scaleX(-1)";
-		if (player1.xVelocity > movementSpeed * player1.statMultipliers[0] * -5)
-			player1.xVelocity =
-				player1.xVelocity * 0.8 - movementSpeed * player1.statMultipliers[0];
-	}
-	if (player1.keysPressed[68] && player1.health > 0 && inRound) {
-		document.getElementById("player1").style.transform = null;
-		if (player1.xVelocity < movementSpeed * player1.statMultipliers[0] * 5)
-			player1.xVelocity =
-				player1.xVelocity * 0.8 + movementSpeed * player1.statMultipliers[0];
+	//Detects key presses - Using defined control scheme constants
+	// Handle Player 1 movement with priority system
+	if (player1.health > 0 && inRound) {
+		// Check if both left and right are pressed
+		const horizontalKeys = [CONTROLS.player1.left, CONTROLS.player1.right];
+		const bothHorizontalPressed = player1.keysPressed[CONTROLS.player1.left] && player1.keysPressed[CONTROLS.player1.right];
+		
+		// Use most recent key press when both horizontal keys are pressed
+		if (bothHorizontalPressed) {
+			const mostRecent = prioritizeRecentKey(horizontalKeys);
+			
+			if (mostRecent === CONTROLS.player1.left) {
+				document.getElementById("player1").style.transform = "scaleX(-1)";
+				if (player1.xVelocity > movementSpeed * player1.statMultipliers[0] * -5)
+					player1.xVelocity = player1.xVelocity * 0.8 - movementSpeed * player1.statMultipliers[0];
+			} else if (mostRecent === CONTROLS.player1.right) {
+				document.getElementById("player1").style.transform = null;
+				if (player1.xVelocity < movementSpeed * player1.statMultipliers[0] * 5)
+					player1.xVelocity = player1.xVelocity * 0.8 + movementSpeed * player1.statMultipliers[0];
+			}
+		} else {
+			// Handle normal single-key-press movement
+			if (player1.keysPressed[CONTROLS.player1.left]) {
+				document.getElementById("player1").style.transform = "scaleX(-1)";
+				if (player1.xVelocity > movementSpeed * player1.statMultipliers[0] * -5)
+					player1.xVelocity = player1.xVelocity * 0.8 - movementSpeed * player1.statMultipliers[0];
+			}
+			if (player1.keysPressed[CONTROLS.player1.right]) {
+				document.getElementById("player1").style.transform = null;
+				if (player1.xVelocity < movementSpeed * player1.statMultipliers[0] * 5)
+					player1.xVelocity = player1.xVelocity * 0.8 + movementSpeed * player1.statMultipliers[0];
+			}
+		}
 	}
 
-	if (
-		player2.keysPressed[76] && // Changed from j (74) to l (76) for left
-		player2.health > 0 &&
-		inRound &&
-		currentScreen === 3
-	) {
-		document.getElementById("player2").style.transform = "scaleX(-1)";
-		if (player2.xVelocity > movementSpeed * player2.statMultipliers[0] * -5)
-			player2.xVelocity =
-				player2.xVelocity * 0.8 - movementSpeed * player2.statMultipliers[0];
-	}
-	if (
-		player2.keysPressed[222] && // Changed from l (76) to ' (222) for right
-		player2.health > 0 &&
-		inRound &&
-		currentScreen === 3
-	) {
-		document.getElementById("player2").style.transform = null;
-		if (player2.xVelocity < movementSpeed * player2.statMultipliers[0] * 5)
-			player2.xVelocity =
-				player2.xVelocity * 0.8 + movementSpeed * player2.statMultipliers[0];
+	// Handle Player 2 movement with priority system
+	if (player2.health > 0 && inRound && currentScreen === 3) {
+		// Check if both left and right are pressed
+		const horizontalKeys = [CONTROLS.player2.left, CONTROLS.player2.right];
+		const bothHorizontalPressed = player2.keysPressed[CONTROLS.player2.left] && player2.keysPressed[CONTROLS.player2.right];
+		
+		// Use most recent key press when both horizontal keys are pressed
+		if (bothHorizontalPressed) {
+			const mostRecent = prioritizeRecentKey(horizontalKeys);
+			
+			if (mostRecent === CONTROLS.player2.left) {
+				document.getElementById("player2").style.transform = "scaleX(-1)";
+				if (player2.xVelocity > movementSpeed * player2.statMultipliers[0] * -5)
+					player2.xVelocity = player2.xVelocity * 0.8 - movementSpeed * player2.statMultipliers[0];
+			} else if (mostRecent === CONTROLS.player2.right) {
+				document.getElementById("player2").style.transform = null;
+				if (player2.xVelocity < movementSpeed * player2.statMultipliers[0] * 5)
+					player2.xVelocity = player2.xVelocity * 0.8 + movementSpeed * player2.statMultipliers[0];
+			}
+		} else {
+			// Handle normal single-key-press movement
+			if (player2.keysPressed[CONTROLS.player2.left]) {
+				document.getElementById("player2").style.transform = "scaleX(-1)";
+				if (player2.xVelocity > movementSpeed * player2.statMultipliers[0] * -5)
+					player2.xVelocity = player2.xVelocity * 0.8 - movementSpeed * player2.statMultipliers[0];
+			}
+			if (player2.keysPressed[CONTROLS.player2.right]) {
+				document.getElementById("player2").style.transform = null;
+				if (player2.xVelocity < movementSpeed * player2.statMultipliers[0] * 5)
+					player2.xVelocity = player2.xVelocity * 0.8 + movementSpeed * player2.statMultipliers[0];
+			}
+		}
 	}
 
 	//Detects hit cooldowns
@@ -649,9 +719,10 @@ function update() {
 	if (player1.bounceTimer > 0) player1.bounceTimer--;
 	if (player2.bounceTimer > 0) player2.bounceTimer--;
 
-	//Handles X-position
-	player1.xPos += player1.xVelocity;
-	if (currentScreen === 5 && inRound) player1.xPos -= levelScrollSpeed;
+	//Handles X-position with frame rate independence
+	// Apply velocity changes with deltaTimeMultiplier for consistent movement
+	player1.xPos += player1.xVelocity * deltaTimeMultiplier;
+	if (currentScreen === 5 && inRound) player1.xPos -= levelScrollSpeed * deltaTimeMultiplier;
 	if (currentScreen === 3 && player1.xPos > 2000 - minDistanceFromEdge) {
 		player1.xPos = 2000 - minDistanceFromEdge;
 		player1.xVelocity = 0;
@@ -661,7 +732,7 @@ function update() {
 		player1.xVelocity = 0;
 	}
 
-	player2.xPos += player2.xVelocity;
+	player2.xPos += player2.xVelocity * deltaTimeMultiplier;
 	if (player2.xPos > 2000 - minDistanceFromEdge) {
 		player2.xPos = 2000 - minDistanceFromEdge;
 		player2.xVelocity = 0;
@@ -671,35 +742,36 @@ function update() {
 		player2.xVelocity = 0;
 	}
 
-	//Handles X-velocity
+	//Handles X-velocity with frame rate independent physics
+	const adjustedHorizontalDrag = HorizontalDrag * deltaTimeMultiplier;
 	if (player1.yPos === windowheightRatio - minDistanceFromFloor) {
 		player1.xVelocity =
-			Math.round(player1.xVelocity / HorizontalDrag) * HorizontalDrag;
-		if (player1.xVelocity > 0) player1.xVelocity -= HorizontalDrag;
-		if (player1.xVelocity < 0) player1.xVelocity += HorizontalDrag;
+			Math.round(player1.xVelocity / adjustedHorizontalDrag) * adjustedHorizontalDrag;
+		if (player1.xVelocity > 0) player1.xVelocity -= adjustedHorizontalDrag;
+		if (player1.xVelocity < 0) player1.xVelocity += adjustedHorizontalDrag;
 	} else {
+		const airDrag = adjustedHorizontalDrag / 2;
 		player1.xVelocity =
-			Math.round(player1.xVelocity / (HorizontalDrag / 2)) *
-			(HorizontalDrag / 2);
-		if (player1.xVelocity > 0) player1.xVelocity -= HorizontalDrag / 2;
-		if (player1.xVelocity < 0) player1.xVelocity += HorizontalDrag / 2;
+			Math.round(player1.xVelocity / airDrag) * airDrag;
+		if (player1.xVelocity > 0) player1.xVelocity -= airDrag;
+		if (player1.xVelocity < 0) player1.xVelocity += airDrag;
 	}
 
 	if (player2.yPos === windowheightRatio - minDistanceFromFloor) {
 		player2.xVelocity =
-			Math.round(player2.xVelocity / HorizontalDrag) * HorizontalDrag;
-		if (player2.xVelocity > 0) player2.xVelocity -= HorizontalDrag;
-		if (player2.xVelocity < 0) player2.xVelocity += HorizontalDrag;
+			Math.round(player2.xVelocity / adjustedHorizontalDrag) * adjustedHorizontalDrag;
+		if (player2.xVelocity > 0) player2.xVelocity -= adjustedHorizontalDrag;
+		if (player2.xVelocity < 0) player2.xVelocity += adjustedHorizontalDrag;
 	} else {
+		const airDrag = adjustedHorizontalDrag / 2;
 		player2.xVelocity =
-			Math.round(player2.xVelocity / (HorizontalDrag / 2)) *
-			(HorizontalDrag / 2);
-		if (player2.xVelocity > 0) player2.xVelocity -= HorizontalDrag / 2;
-		if (player2.xVelocity < 0) player2.xVelocity += HorizontalDrag / 2;
+			Math.round(player2.xVelocity / airDrag) * airDrag;
+		if (player2.xVelocity > 0) player2.xVelocity -= airDrag;
+		if (player2.xVelocity < 0) player2.xVelocity += airDrag;
 	}
 
-	//Handles Y-position
-	player1.yPos += player1.yVelocity;
+	//Handles Y-position with frame rate independence
+	player1.yPos += player1.yVelocity * deltaTimeMultiplier;
 	if (player1.yPos > windowheightRatio - minDistanceFromFloor) {
 		player1.yPos = windowheightRatio - minDistanceFromFloor;
 		player1.yVelocityOnLastLand = player1.yVelocity;
@@ -711,7 +783,7 @@ function update() {
 		player1.yVelocity = 0;
 	}
 
-	player2.yPos += player2.yVelocity;
+	player2.yPos += player2.yVelocity * deltaTimeMultiplier;
 	if (player2.yPos > windowheightRatio - minDistanceFromFloor) {
 		player2.yPos = windowheightRatio - minDistanceFromFloor;
 		player2.yVelocityOnLastLand = player2.yVelocity;
@@ -723,24 +795,27 @@ function update() {
 		player2.yVelocity = 0;
 	}
 
-	//Handles Y-velocity
-	player1.yVelocity = Math.round(player1.yVelocity / gravity) * gravity;
+	//Handles Y-velocity with frame rate independent physics
+	// Apply frame-rate adjusted gravity
+	const adjustedGravity = gravity * deltaTimeMultiplier;
+	
+	player1.yVelocity = Math.round(player1.yVelocity / adjustedGravity) * adjustedGravity;
 	if (player1.yPos < windowheightRatio - minDistanceFromFloor) {
 		// Apply gravity
-		player1.yVelocity = Math.min(player1.yVelocity + gravity, maxFallingSpeed);
+		player1.yVelocity = Math.min(player1.yVelocity + adjustedGravity, maxFallingSpeed);
 		// Apply fast fall if key is pressed
-		if (player1.keysPressed[83] && player1.health > 0 && inRound) { // 's' key for P1 fast fall
-			player1.yVelocity = Math.min(player1.yVelocity + gravity * 1.5, maxFallingSpeed);
+		if (player1.keysPressed[CONTROLS.player1.fastFall] && player1.health > 0 && inRound) {
+			player1.yVelocity = Math.min(player1.yVelocity + adjustedGravity * 1.5, maxFallingSpeed);
 		}
 	}
 
-	player2.yVelocity = Math.round(player2.yVelocity / gravity) * gravity;
+	player2.yVelocity = Math.round(player2.yVelocity / adjustedGravity) * adjustedGravity;
 	if (player2.yPos < windowheightRatio - minDistanceFromFloor) {
 		// Apply gravity
-		player2.yVelocity = Math.min(player2.yVelocity + gravity, maxFallingSpeed);
+		player2.yVelocity = Math.min(player2.yVelocity + adjustedGravity, maxFallingSpeed);
 		// Apply fast fall if key is pressed
-		if (player2.keysPressed[186] && player2.health > 0 && inRound && currentScreen === 3) { // ';' key for P2 fast fall
-			player2.yVelocity = Math.min(player2.yVelocity + gravity * 1.5, maxFallingSpeed);
+		if (player2.keysPressed[CONTROLS.player2.fastFall] && player2.health > 0 && inRound && currentScreen === 3) {
+			player2.yVelocity = Math.min(player2.yVelocity + adjustedGravity * 1.5, maxFallingSpeed);
 		}
 	}
 
@@ -845,55 +920,83 @@ function update() {
 				"url('img/0OrangeStand.gif')";
 		}
 
-		//Handles afterimages
-		player1totalVelocity =
-			(player1.xVelocity ** 2 + player1.yVelocity ** 2) ** 0.5;
+		// Handles afterimages - with performance optimization
+		// Create afterimages at a controlled rate to prevent excessive DOM manipulation
+		const createAfterImageThreshold = 3; // Only create afterimages every few frames when moving fast
+		player1.afterImageCounter = player1.afterImageCounter || 0;
+		player2.afterImageCounter = player2.afterImageCounter || 0;
+		player1totalVelocity = Math.sqrt(player1.xVelocity * player1.xVelocity + player1.yVelocity * player1.yVelocity);
+
 		if (player1totalVelocity > minAfterImageSpeed) {
-			afterImage1.style.left = `${player1.xPos / 20}vw`;
-			afterImage1.style.top = `${player1.yPos / 20}vw`;
-			afterImage1.style.filter = `hue-rotate(${characterHues[player1.dragonType === 4 ? 0 : player1.dragonType]}deg)`;
-			afterImage1.style.transform =
-				document.getElementById("player1").style.transform;
-			afterImage1.setAttribute("data-timeSpawned", timeSinceStart);
-			if (player1.health === 0) {
-				afterImage1.style.backgroundImage = "url('img/7OrangeDED.gif')";
-			} else if (player1.hitCooldown > 30) {
-				afterImage1.style.backgroundImage = "url('img/6OrangeOuch.png')";
-			} else if (player1.yVelocity < -2) {
-				afterImage1.style.backgroundImage = "url('img/4OrangeUp.png')";
-			} else if (player1.yVelocity > 2) {
-				afterImage1.style.backgroundImage = "url('img/5OrangeDown.png')";
-			} else if (player1.xVelocity !== 0) {
-				afterImage1.style.backgroundImage = "url('img/1OrangeRun.gif')";
-			} else {
-				afterImage1.style.backgroundImage = "url('img/0OrangeStand.gif')";
+			player1.afterImageCounter++;
+	
+			// Only create afterimages periodically based on velocity
+			if (player1.afterImageCounter >= createAfterImageThreshold) {
+				player1.afterImageCounter = 0;
+		
+				afterImage1.style.left = `${player1.xPos / 20}vw`;
+				afterImage1.style.top = `${player1.yPos / 20}vw`;
+				afterImage1.style.filter = `hue-rotate(${characterHues[player1.dragonType === 4 ? 0 : player1.dragonType]}deg)`;
+				afterImage1.style.transform = document.getElementById("player1").style.transform;
+				afterImage1.setAttribute("data-timeSpawned", timeSinceStart);
+		
+				// Set background image based on player state
+				if (player1.health === 0) {
+					afterImage1.style.backgroundImage = "url('img/7OrangeDED.gif')";
+				} else if (player1.hitCooldown > 30) {
+					afterImage1.style.backgroundImage = "url('img/6OrangeOuch.png')";
+				} else if (player1.yVelocity < -2) {
+					afterImage1.style.backgroundImage = "url('img/4OrangeUp.png')";
+				} else if (player1.yVelocity > 2) {
+					afterImage1.style.backgroundImage = "url('img/5OrangeDown.png')";
+				} else if (player1.xVelocity !== 0) {
+					afterImage1.style.backgroundImage = "url('img/1OrangeRun.gif')";
+				} else {
+					afterImage1.style.backgroundImage = "url('img/0OrangeStand.gif')";
+				}
+		
+				// Use documentFragment for better performance
+				document.body.appendChild(afterImage1.cloneNode(true));
 			}
-			document.body.appendChild(afterImage1.cloneNode(true));
+		} else {
+			player1.afterImageCounter = 0;
 		}
 
-		player2totalVelocity =
-			(player2.xVelocity ** 2 + player2.yVelocity ** 2) ** 0.5;
+		player2totalVelocity = Math.sqrt(player2.xVelocity * player2.xVelocity + player2.yVelocity * player2.yVelocity);
+
 		if (player2totalVelocity > minAfterImageSpeed) {
-			afterImage2.style.left = `${player2.xPos / 20}vw`;
-			afterImage2.style.top = `${player2.yPos / 20}vw`;
-			afterImage2.style.filter = `hue-rotate(${characterHues[player2.dragonType === 4 ? 0 : player2.dragonType]}deg)`;
-			afterImage2.style.transform =
-				document.getElementById("player2").style.transform;
-			afterImage2.setAttribute("data-timeSpawned", timeSinceStart);
-			if (player2.health === 0) {
-				afterImage2.style.backgroundImage = "url('img/7OrangeDED.gif')";
-			} else if (player2.hitCooldown > 30) {
-				afterImage2.style.backgroundImage = "url('img/6OrangeOuch.png')";
-			} else if (player2.yVelocity < -2) {
-				afterImage2.style.backgroundImage = "url('img/4OrangeUp.png')";
-			} else if (player2.yVelocity > 2) {
-				afterImage2.style.backgroundImage = "url('img/5OrangeDown.png')";
-			} else if (player2.xVelocity !== 0) {
-				afterImage2.style.backgroundImage = "url('img/1OrangeRun.gif')";
-			} else {
-				afterImage2.style.backgroundImage = "url('img/0OrangeStand.gif')";
+			player2.afterImageCounter++;
+	
+			// Only create afterimages periodically based on velocity
+			if (player2.afterImageCounter >= createAfterImageThreshold) {
+				player2.afterImageCounter = 0;
+		
+				afterImage2.style.left = `${player2.xPos / 20}vw`;
+				afterImage2.style.top = `${player2.yPos / 20}vw`;
+				afterImage2.style.filter = `hue-rotate(${characterHues[player2.dragonType === 4 ? 0 : player2.dragonType]}deg)`;
+				afterImage2.style.transform = document.getElementById("player2").style.transform;
+				afterImage2.setAttribute("data-timeSpawned", timeSinceStart);
+		
+				// Set background image based on player state
+				if (player2.health === 0) {
+					afterImage2.style.backgroundImage = "url('img/7OrangeDED.gif')";
+				} else if (player2.hitCooldown > 30) {
+					afterImage2.style.backgroundImage = "url('img/6OrangeOuch.png')";
+				} else if (player2.yVelocity < -2) {
+					afterImage2.style.backgroundImage = "url('img/4OrangeUp.png')";
+				} else if (player2.yVelocity > 2) {
+					afterImage2.style.backgroundImage = "url('img/5OrangeDown.png')";
+				} else if (player2.xVelocity !== 0) {
+					afterImage2.style.backgroundImage = "url('img/1OrangeRun.gif')";
+				} else {
+					afterImage2.style.backgroundImage = "url('img/0OrangeStand.gif')";
+				}
+		
+				// Use documentFragment for better performance
+				document.body.appendChild(afterImage2.cloneNode(true));
 			}
-			document.body.appendChild(afterImage2.cloneNode(true));
+		} else {
+			player2.afterImageCounter = 0;
 		}
 
 		//Handles win state
@@ -922,181 +1025,186 @@ function update() {
 	}
 }
 
-setInterval(update, 15);
+// Replace interval with requestAnimationFrame for smoother animation
+let lastFrameTime = 0;
+const targetFrameRate = 60; // 60 FPS target
+const targetFrameTime = 1000 / targetFrameRate; // ~16.67ms per frame
+
+function gameLoop(timestamp) {
+    // Calculate time since last frame
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    const deltaTime = timestamp - lastFrameTime;
+    
+    // Update with actual time delta for smooth animation
+    update(deltaTime);
+    lastFrameTime = timestamp;
+    
+    // Request next frame
+    requestAnimationFrame(gameLoop);
+}
+
+// Start the game loop
+requestAnimationFrame(gameLoop);
+
+// Track keypress timestamps to determine which key was pressed most recently
+let keyPressOrder = [];
+
+// Function to register a keypress in the order stack
+function registerKeyPress(keyCode) {
+	// Remove previous instance of this key if it exists
+	keyPressOrder = keyPressOrder.filter(item => item.key !== keyCode);
+	
+	// Add to the end of the array (most recent)
+	keyPressOrder.push({ key: keyCode, time: performance.now() });
+	
+	// Keep only the last 20 keys to prevent memory growth
+	if (keyPressOrder.length > 20) {
+		keyPressOrder.shift();
+	}
+}
+
+// Process key events for jump action
+function handleJump(player, playerNum) {
+	if (!player.jumped && player.health > 0 && inRound && (playerNum === 1 || currentScreen === 3)) {
+		player.jumped = true;
+		if (player.yPos === windowheightRatio - minDistanceFromFloor &&
+			player.hitCooldown === 0 &&
+			player.bounceTimer > 0) {
+			//Bounce
+			player.yVelocity = Math.max(
+				player.yVelocityOnLastLand * -player.hiddenStats.bounceMultiplier,
+				-(maxBounceHeight * player.statMultipliers[1])
+			);
+			//Creates the bounce effect
+			jump.style.left = `${player.xPos / 20}vw`;
+			jump.style.top = `${(windowheightRatio - 160) / 20}vw`;
+			jump.setAttribute("data-timeSpawned", timeSinceStart);
+			document.body.appendChild(jump.cloneNode(true));
+		} else if (player.yPos < windowheightRatio - minDistanceFromFloor &&
+			player.xPos === 2000 - minDistanceFromEdge) {
+			//Right wall jump
+			document.getElementById(`player${playerNum}`).style.transform = "scaleX(-1)";
+			if (player.yVelocity < 10) {
+				player.yVelocity = -(jumpHeight * player.statMultipliers[1]);
+				player.xVelocity = -wallJumpSpeed;
+			} else {
+				player.xVelocity = -player.yVelocity;
+			}
+		} else if (player.yPos < windowheightRatio - minDistanceFromFloor &&
+			player.xPos === minDistanceFromEdge - 192) {
+			//Left wall jump
+			document.getElementById(`player${playerNum}`).style.transform = null;
+			if (player.yVelocity < 10) {
+				player.yVelocity = -(jumpHeight * player.statMultipliers[1]);
+				player.xVelocity = wallJumpSpeed;
+			} else {
+				player.xVelocity = player.yVelocity;
+			}
+		} else if (player.yPos === windowheightRatio - minDistanceFromFloor) {
+			//Regular jump
+			player.yVelocity = -(jumpHeight * player.statMultipliers[1]);
+		} 
+	}
+}
+
+// Process key events for dash action
+function handleDash(player, playerNum) {
+	if (!player.jumped && player.currentDashCooldown === 0 && player.health > 0 && 
+		inRound && (playerNum === 1 || currentScreen === 3)) {
+		player.yVelocity = 0;
+		if (document.getElementById(`player${playerNum}`).style.transform === "scaleX(-1)") {
+			player.xVelocity = -player.hiddenStats.dashDistance;
+		} else {
+			player.xVelocity = player.hiddenStats.dashDistance;
+		}
+		player.currentDashCooldown = player.hiddenStats.dashCooldown;
+	}
+}
 
 //Pressing the jump keys
 window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 87) {
-		if (!player1.jumped && player1.health > 0 && inRound) {
-			player1.jumped = true;
-			//if (player1.yVelocity > 10 && player1.yPos > windowheightRatio - 128 - player1.yVelocity * 2) {player1.yVelocity = Math.max(player1.yVelocity * -1.3, -maxBounceHeight)}
-			if (
-				player1.yPos === windowheightRatio - minDistanceFromFloor &&
-				player1.hitCooldown === 0 &&
-				player1.bounceTimer > 0
-			) {
-				//Bounce
-				player1.yVelocity = Math.max(
-					player1.yVelocityOnLastLand * -player1.hiddenStats.bounceMultiplier,
-					-(maxBounceHeight * player1.statMultipliers[1]),
-				);
-				//Creates the bounce effect
-				jump.style.left = `${player1.xPos / 20}vw`;
-				jump.style.top = `${(windowheightRatio - 160) / 20}vw`;
-				jump.setAttribute("data-timeSpawned", timeSinceStart);
-				document.body.appendChild(jump.cloneNode(true));
-			} else if (
-				player1.yPos < windowheightRatio - minDistanceFromFloor &&
-				player1.xPos === 2000 - minDistanceFromEdge
-			) {
-				//Right wall jump
-				document.getElementById("player1").style.transform = "scaleX(-1)";
-				if (player1.yVelocity < 10) {
-					player1.yVelocity = -(jumpHeight * player1.statMultipliers[1]);
-					player1.xVelocity = -wallJumpSpeed;
-				} else {
-					player1.xVelocity = -player1.yVelocity;
-				}
-			} else if (
-				player1.yPos < windowheightRatio - minDistanceFromFloor &&
-				player1.xPos === minDistanceFromEdge - 192
-			) {
-				//Left wall jump
-				document.getElementById("player1").style.transform = null;
-				if (player1.yVelocity < 10) {
-					player1.yVelocity = -(jumpHeight * player1.statMultipliers[1]);
-					player1.xVelocity = wallJumpSpeed;
-				} else {
-					player1.xVelocity = player1.yVelocity;
-				}
-			} else if (player1.yPos === windowheightRatio - minDistanceFromFloor) {
-				player1.yVelocity = -(jumpHeight * player1.statMultipliers[1]);
-			} //Jump
-		}
+	if (event.keyCode === CONTROLS.player1.jump) {
+		handleJump(player1, 1);
+	} else if (event.keyCode === CONTROLS.player2.jump) {
+		handleJump(player2, 2);
+	} else if (event.keyCode === CONTROLS.player1.dash) {
+		handleDash(player1, 1);
+	} else if (event.keyCode === CONTROLS.player2.dash) {
+		handleDash(player2, 2);
 	}
-	return;
-});
-window.addEventListener("keyup", (event) => {
-	if (event.isComposing || event.keyCode === 87) {
-		player1.jumped = false;
-	}
-	return;
 });
 
-window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 80) {
-		// Changed from i (73) to p (80) for jump
-		if (
-			!player2.jumped &&
-			player2.health > 0 &&
-			inRound &&
-			currentScreen === 3
-		) {
-			player2.jumped = true;
-			//if (player2.yVelocity > 10 && player2.yPos > windowheightRatio - 128 - player2.yVelocity * 2) {player2.yVelocity = Math.max(player2.yVelocity * -1.3, -maxBounceHeight)}
-			if (
-				player2.yPos === windowheightRatio - minDistanceFromFloor &&
-				player2.hitCooldown === 0 &&
-				player2.bounceTimer > 0
-			) {
-				//Bounce
-				player2.yVelocity = Math.max(
-					player2.yVelocityOnLastLand * -player2.hiddenStats.bounceMultiplier,
-					-(maxBounceHeight * player2.statMultipliers[1]),
-				);
-				//Creates the bounce effect
-				jump.style.left = `${player2.xPos / 20}vw`;
-				jump.style.top = `${(windowheightRatio - 160) / 20}vw`;
-				jump.setAttribute("data-timeSpawned", timeSinceStart);
-				document.body.appendChild(jump.cloneNode(true));
-			} else if (
-				player2.yPos < windowheightRatio - minDistanceFromFloor &&
-				player2.xPos === 2000 - minDistanceFromEdge
-			) {
-				//Right wall jump
-				document.getElementById("player2").style.transform = "scaleX(-1)";
-				if (player2.yVelocity < 10) {
-					player2.yVelocity = -(jumpHeight * player2.statMultipliers[1]);
-					player2.xVelocity = -wallJumpSpeed;
-				} else {
-					player2.xVelocity = -player2.yVelocity;
-				}
-			} else if (
-				player2.yPos < windowheightRatio - minDistanceFromFloor &&
-				player2.xPos === minDistanceFromEdge - 192
-			) {
-				//Left wall jump
-				document.getElementById("player2").style.transform = null;
-				if (player2.yVelocity < 10) {
-					player2.yVelocity = -(jumpHeight * player2.statMultipliers[1]);
-					player2.xVelocity = wallJumpSpeed;
-				} else {
-					player2.xVelocity = player2.yVelocity;
-				}
-			} else if (player2.yPos === windowheightRatio - minDistanceFromFloor) {
-				player2.yVelocity = -(jumpHeight * player2.statMultipliers[1]);
-			} //Jump
-		}
-	}
-	return;
-});
 window.addEventListener("keyup", (event) => {
-	if (event.isComposing || event.keyCode === 80) {
-		// Changed from i (73) to p (80) for jump keyup
+	if (event.keyCode === CONTROLS.player1.jump) {
+		player1.jumped = false;
+	} else if (event.keyCode === CONTROLS.player2.jump) {
 		player2.jumped = false;
 	}
-	return;
 });
 
-//Dashing
-window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 16) {
-		if (
-			!player1.jumped &&
-			player1.currentDashCooldown === 0 &&
-			player1.health > 0 &&
-			inRound
-		) {
-			player1.yVelocity = 0;
-			if (document.getElementById("player1").style.transform === "scaleX(-1)") {
-				player1.xVelocity = -player1.hiddenStats.dashDistance;
-			} else {
-				player1.xVelocity = player1.hiddenStats.dashDistance;
-			}
-			player1.currentDashCooldown = player1.hiddenStats.dashCooldown;
-		}
+// Track which keys are currently pressed and save previous state
+let keysCurrentlyPressed = {};
+
+// Function to update key states in a more reliable way
+function updateKeyState(keyCode, isPressed) {
+	// Track in global key state
+	keysCurrentlyPressed[keyCode] = isPressed;
+	
+	// Save previous state before updating
+	player1.previousKeys[keyCode] = player1.keysPressed[keyCode];
+	player2.previousKeys[keyCode] = player2.keysPressed[keyCode];
+	
+	// Update current state
+	player1.keysPressed[keyCode] = isPressed;
+	player2.keysPressed[keyCode] = isPressed;
+	
+	// Don't let browser handle key events for game controls to prevent unwanted behaviors
+	if (isGameControl(keyCode) && inRound) {
+		return false; // Prevents default browser actions like scrolling with arrow keys
 	}
-	return;
-});
+	return true;
+}
+
+// Check if a keyCode is used as a game control
+function isGameControl(keyCode) {
+	const controls = [...Object.values(CONTROLS.player1), ...Object.values(CONTROLS.player2)];
+	return controls.includes(keyCode);
+}
+
+// Improved key event listeners with prevention of default behaviors
 window.addEventListener("keydown", (event) => {
-	if (event.isComposing || event.keyCode === 13) { // Use Enter key (keyCode 13) for dash
-		// Player 2 Dash action
-		if (
-			!player2.jumped &&
-			player2.currentDashCooldown === 0 &&
-			player2.health > 0 &&
-			inRound &&
-			currentScreen === 3
-		) {
-			player2.yVelocity = 0;
-			if (document.getElementById("player2").style.transform === "scaleX(-1)") {
-				player2.xVelocity = -player2.hiddenStats.dashDistance;
-			} else {
-				player2.xVelocity = player2.hiddenStats.dashDistance;
-			}
-			player2.currentDashCooldown = player2.hiddenStats.dashCooldown;
-		}
+	// Register the keypress in our order tracking system
+	registerKeyPress(event.keyCode);
+	
+	// Update key states
+	const result = updateKeyState(event.keyCode, true);
+	
+	// Prevent default behavior for game controls
+	if (!result && inRound) {
+		event.preventDefault();
 	}
-	return;
 });
 
-window.addEventListener("keydown", (event) => {
-	player1.keysPressed[event.keyCode] = true;
-	player2.keysPressed[event.keyCode] = true;
-});
 window.addEventListener("keyup", (event) => {
-	player1.keysPressed[event.keyCode] = false;
-	player2.keysPressed[event.keyCode] = false;
+	// Simply update key state for key up events
+	updateKeyState(event.keyCode, false);
+});
+
+// To prevent lost inputs when switching browser tabs or windows
+window.addEventListener("blur", () => {
+	// Clear all pressed keys when window loses focus
+	keysCurrentlyPressed = {};
+
+	// Reset player key states
+	Object.keys(player1.keysPressed).forEach(key => {
+		player1.previousKeys[key] = player1.keysPressed[key];
+		player1.keysPressed[key] = false;
+	});
+	
+	Object.keys(player2.keysPressed).forEach(key => {
+		player2.previousKeys[key] = player2.keysPressed[key];
+		player2.keysPressed[key] = false;
+	});
 });
 
 function damagePlayer(x) {
